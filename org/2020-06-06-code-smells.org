@@ -686,3 +686,7 @@ Happy hacking.
   This post and my advice are clearly opinionated. If you disagree with
   anything I've said, found a mistake, or think I missed important bits,
   feel free to shout at me on any of the social media platforms I'm on.
+
+* Translation
+
+  [[https://see-ro-e.tistory.com/299][Korean]] - Thank you Lee Won Jun!
