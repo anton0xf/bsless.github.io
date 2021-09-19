@@ -1,0 +1,1001 @@
+---
+layout: post
+title: "Stressed Servers"
+subtitle: "Pushing the limites with Clojure - web servers edition"
+permalink: /:title/
+tags: [clojure, "web servers" ,"performance"]
+categories: [clojure, "web servers" ,"performance"]
+---
+
+
+<p>
+Writing large scale web applications in Clojure can offer a unique
+challenge. In this series I'll share and walk through the results of a
+<a href="https://github.com/bsless/stress-server">web servers profiling project</a> I have been working on.
+</p>
+
+<p>
+My goal? a humble one. Find the best web server in the Clojure ecosystem, and
+the best way to configure and run the available servers. Along the way, I have
+already found and PR-ed performance improvement opportunities.
+</p>
+
+<div id="outline-container-orga509f78" class="outline-2">
+<h2 id="orga509f78">Who won?</h2>
+<div class="outline-text-2" id="text-orga509f78">
+<p>
+Initial results show that even a naive, non optimized solution with
+off the shelf routing and server frameworks can easily serve 60k qps
+on 8 CPU cores with good response times.
+</p>
+
+<p>
+As of writing this post, the surprising winners are http-kit and pohjavirta.
+These are the only servers which managed to get good response times at high
+percentiles. Also, you should prefer the latest JDKs.
+</p>
+
+<p>
+I expect in the future to see more servers join this illustrious bunch as the
+ring and reitit performance PRs make their way in.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org6d96ec3" class="outline-2">
+<h2 id="org6d96ec3">What is fast?</h2>
+<div class="outline-text-2" id="text-org6d96ec3">
+<p>
+It's not a secret Clojure isn't the fastest language in the world.
+Immutability and high level of abstraction come at a cost.
+</p>
+
+<p>
+At that case, the reader might wonder if Clojure is a good fit for
+applications which deal with large amounts of data and lots of traffic.
+We can always provision more machines, but alas, they cost money.
+</p>
+
+<p>
+Since May this year, I have been poking and prodding at different web
+server libraries in Clojure, combined with Metosin's high performance
+web tech stack.
+</p>
+
+<p>
+I set up a profiling environment which used wrk2 at different rates to
+find the performance limits of the different libraries, across
+different JVM versions and GC algorithms and produced corresponding
+flame graphs.
+</p>
+
+<p>
+Finally, after nights of experiments, the results are in - while there
+is still room for improvement, we can go pretty darn fast with
+Clojure, without special tuning or weird looking code.
+</p>
+
+<p>
+In this post and followups, I'll present my findings, methodology and
+some conclusions and future goals.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org4729105" class="outline-2">
+<h2 id="org4729105">A good web server</h2>
+<div class="outline-text-2" id="text-org4729105">
+<p>
+A good measure of a server's behavior is its response time to queries
+at different rates over a long enough period of time.
+</p>
+
+<p>
+Long enough is a slightly arbitrary measure, which requires we
+understand how web servers fail. The entire stack is built on queues.
+From the operating system kernel to the executor service on the JVM.
+The server will fail when one of them starts to fill up. Response
+times will increase until the server starts throwing exceptions, such
+as <a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/RejectedExecutionException.html">RejectedExecutionExceptions</a> from an ExecutorService, or OOM due to
+an unbounded queue.
+</p>
+
+<p>
+Once we have established the server is probably stable at an operating
+rate, we can measure the latency for requests handling and plot it as
+a histogram:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text"> 50.000%    1.10ms
+ 75.000%    1.49ms
+ 90.000%    1.87ms
+ 99.000%    4.34ms
+ 99.900%   34.27ms
+ 99.990%   73.54ms
+ 99.999%   95.61ms
+100.000%  134.65ms
+</pre>
+</div>
+
+<p>
+We are interested in three measures:
+</p>
+<ul class="org-ul">
+<li>typical response time for some operating rate</li>
+<li>highest acceptable operating rate</li>
+</ul>
+
+<p>
+The acceptable operating rate is usually a function of:
+</p>
+<ul class="org-ul">
+<li>The "wall" for that typical rate: note how at a certain percentiles
+response times increase exponentially.</li>
+<li>Worse case response times</li>
+</ul>
+
+<p>
+These considerations are relevant to a specific application and can't
+be judged in a vacuum. For some cases anything above 1ms is
+unacceptable, while for others a worst case response time of 100ms is
+fine.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org3e74634" class="outline-2">
+<h2 id="org3e74634">Results? Where?</h2>
+<div class="outline-text-2" id="text-org3e74634">
+<p>
+<a href="https://github.com/bsless/stress-server">Here you go</a> 
+</p>
+
+<p>
+There is a lot of data to wade through, as the results are a product
+of all these options:
+</p>
+
+<ul class="org-ul">
+<li>server libraries: http-kit, jetty, aleph, pohjavirta, undertow</li>
+<li>request handling methods: middleware, interceptors</li>
+<li>handling synchrony: synchronous vs. asynchronous</li>
+<li>JVM versions: 8, 11, 15</li>
+<li>GC algorithms: ParallelGC, G1GC, ShenandoahGC, ZGC</li>
+<li>Operating rate: from 10k to 60k qps</li>
+</ul>
+
+<p>
+For which you will find HDR plots and flame graphs.
+</p>
+
+<p>
+This is too much to take in. The astute reader will notice there are
+hundreds of possible scenarios. At this stage let us skip right to the
+interesting bits:
+</p>
+
+<p>
+In more than one scenario, several configurations are able to handle
+at least 60k qps for 10 minutes with room to spare. Finding their
+upper limit is the immediate next goal.
+</p>
+
+<p>
+Let us examine a few characteristic results, to better orient ourselves:
+</p>
+</div>
+
+<div id="outline-container-orgecf9a2a" class="outline-3">
+<h3 id="orgecf9a2a">Well behaved web server</h3>
+<div class="outline-text-3" id="text-orgecf9a2a">
+<p>
+In this example we can see a server which maintains an excellent
+response time even at 6 nines.
+</p>
+
+
+<div id="org5aeb860" class="figure">
+<p><img src="../assets/img/httpkit.ring-middleware.async.java15.ParallelGC.r60k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ParallelGC.r60k.t16.c400.d600s.png" />  
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org08583c7" class="outline-3">
+<h3 id="org08583c7">Server about to fall over</h3>
+<div class="outline-text-3" id="text-org08583c7">
+</div>
+<div id="outline-container-org017cca8" class="outline-4">
+<h4 id="org017cca8">Before</h4>
+<div class="outline-text-4" id="text-org017cca8">
+<p>
+This web server's response time has a sharp jump, also known as a "wall"
+</p>
+
+
+<div id="org7383fb0" class="figure">
+<p><img src="../assets/img/jetty.ring-interceptors.async.java8.ParallelGC.r30k.t16.c400.d600s.png" alt="jetty.ring-interceptors.async.java8.ParallelGC.r30k.t16.c400.d600s.png" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8c1e9ff" class="outline-4">
+<h4 id="org8c1e9ff">Almost</h4>
+<div class="outline-text-4" id="text-org8c1e9ff">
+<p>
+As the requests rate increases, the jump in response time becomes
+less sharp, where the bad response times move closer to lower
+percentiles
+</p>
+
+
+<div id="orgae52762" class="figure">
+<p><img src="../assets/img/jetty.ring-interceptors.async.java8.ParallelGC.r50k.t16.c400.d600s.png" alt="jetty.ring-interceptors.async.java8.ParallelGC.r50k.t16.c400.d600s.png" />
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgda5fdc6" class="outline-3">
+<h3 id="orgda5fdc6">Server on fire</h3>
+<div class="outline-text-3" id="text-orgda5fdc6">
+<p>
+At some point the requests come in faster than the server can process
+them and for all intents and purposes, it is non-responsive.
+</p>
+
+
+<div id="org3070b45" class="figure">
+<p><img src="../assets/img/jetty.ring-interceptors.async.java8.ParallelGC.r60k.t16.c400.d600s.png" alt="jetty.ring-interceptors.async.java8.ParallelGC.r60k.t16.c400.d600s.png" />
+</p>
+</div>
+
+
+<p>
+These are the types of results you can expect to see. Lower is better.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org122be46" class="outline-3">
+<h3 id="org122be46">Assessing the results</h3>
+<div class="outline-text-3" id="text-org122be46">
+<p>
+Since we are interested in seeing how servers perform under high loads,
+we want the scenarios where the worst response times at the highest
+rates are still good.
+</p>
+
+<p>
+What are good response rates? This is a qualitative question, but at
+the bare minimum, we would consider results under 200ms as "good",
+under 1s acceptable, and anything over should be avoided for high work
+loads.
+</p>
+
+<p>
+As of this writing, only http-kit and pohjavirta have managed to get
+good response times at 60k qps. I expect that to see better showings
+after some PRs have made their way into ring and reitit.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-org687c95b" class="outline-3">
+<h3 id="org687c95b">The effects of GC</h3>
+<div class="outline-text-3" id="text-org687c95b">
+<p>
+The JVM offers a variety of <a href="https://docs.oracle.com/en/java/javase/15/gctuning/introduction-garbage-collection-tuning.html#GUID-326EB4CF-8C8C-4267-8355-21AB04F0D304">Garbage Collectors</a> suitable for different
+use cases.
+</p>
+
+<p>
+The general guideline is that choice of correct algorithm should be
+informed by <a href="https://docs.oracle.com/en/java/javase/15/gctuning/garbage-collector-implementation.html#GUID-C2CA24AD-DC01-4B31-A868-F7DAC7E3BF4D">responsiveness and latency requirements</a>.
+</p>
+
+<p>
+From Oracle's documentation:
+</p>
+<blockquote>
+<p>
+Throughput is the percentage of total time not spent in garbage
+collection considered over long periods of time. Throughput includes
+time spent in allocation (but tuning for speed of allocation
+generally isn't needed).
+</p>
+
+<p>
+Latency is the responsiveness of an application. Garbage collection
+pauses affect the responsiveness of applications
+</p>
+</blockquote>
+
+<p>
+On the axis of throughput &lt;-&gt; responsiveness, the available collectors can be ordered as:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">Throughput : ParallelGC, G1GC, (ZGC, ShenandoahGC) : Responsiveness
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org0bcd86f" class="outline-4">
+<h4 id="org0bcd86f">Throughput vs. Responsiveness at lower rates</h4>
+<div class="outline-text-4" id="text-org0bcd86f">
+<p>
+At 30k qps These are the latency distributions for the different
+garbage collectors
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="org-right">% tile</td>
+<td class="org-left">ParallelGC</td>
+<td class="org-left">G1GC</td>
+<td class="org-left">ShenandoahGC</td>
+<td class="org-left">ZGC</td>
+</tr>
+
+<tr>
+<td class="org-right">50.000%</td>
+<td class="org-left">3.06ms</td>
+<td class="org-left">1.33ms</td>
+<td class="org-left">1.13ms</td>
+<td class="org-left">1.32ms</td>
+</tr>
+
+<tr>
+<td class="org-right">75.000%</td>
+<td class="org-left">4.90ms</td>
+<td class="org-left">2.08ms</td>
+<td class="org-left">1.55ms</td>
+<td class="org-left">1.88ms</td>
+</tr>
+
+<tr>
+<td class="org-right">90.000%</td>
+<td class="org-left">9.03ms</td>
+<td class="org-left">5.04ms</td>
+<td class="org-left">2.01ms</td>
+<td class="org-left">4.46ms</td>
+</tr>
+
+<tr>
+<td class="org-right">99.000%</td>
+<td class="org-left">17.38ms</td>
+<td class="org-left">14.45ms</td>
+<td class="org-left">12.38ms</td>
+<td class="org-left">14.23ms</td>
+</tr>
+
+<tr>
+<td class="org-right">99.900%</td>
+<td class="org-left">23.01ms</td>
+<td class="org-left">20.08ms</td>
+<td class="org-left">18.99ms</td>
+<td class="org-left">20.19ms</td>
+</tr>
+
+<tr>
+<td class="org-right">99.990%</td>
+<td class="org-left">32.26ms</td>
+<td class="org-left">25.79ms</td>
+<td class="org-left">25.22ms</td>
+<td class="org-left">26.67ms</td>
+</tr>
+
+<tr>
+<td class="org-right">99.999%</td>
+<td class="org-left">39.78ms</td>
+<td class="org-left">31.77ms</td>
+<td class="org-left">32.11ms</td>
+<td class="org-left">32.45ms</td>
+</tr>
+
+<tr>
+<td class="org-right">100.000%</td>
+<td class="org-left">52.19ms</td>
+<td class="org-left">42.94ms</td>
+<td class="org-left">41.34ms</td>
+<td class="org-left">39.33ms</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Like we'd expect, ParallelGC has the worse response times for every percentile.
+</p>
+
+<p>
+ShenandoahGC and ZGC seem to also give better response times than
+G1GC, as expected from responsiveness optimized collectors.
+</p>
+
+<p>
+You can see these plots below:
+</p>
+</div>
+
+<div id="outline-container-org02bcb15" class="outline-5">
+<h5 id="org02bcb15">ParallelGC</h5>
+<div class="outline-text-5" id="text-org02bcb15">
+
+<div id="orgb42a7f8" class="figure">
+<p><img src="../assets/img/httpkit.ring-middleware.async.java15.ParallelGC.r30k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ParallelGC.r30k.t16.c400.d600s.png" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8c17dc3" class="outline-5">
+<h5 id="org8c17dc3">G1GC</h5>
+<div class="outline-text-5" id="text-org8c17dc3">
+
+<div id="orgb1a6294" class="figure">
+<p><img src="../assets/img/httpkit.ring-middleware.async.java15.G1GC.r30k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.G1GC.r30k.t16.c400.d600s.png" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf9babcc" class="outline-5">
+<h5 id="orgf9babcc">ShenandoahGC</h5>
+<div class="outline-text-5" id="text-orgf9babcc">
+
+<div id="orgd49d472" class="figure">
+<p><img src="../assets/img/httpkit.ring-middleware.async.java15.ShenandoahGC.r30k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ShenandoahGC.r30k.t16.c400.d600s.png" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org0f0d985" class="outline-5">
+<h5 id="org0f0d985">ZGC</h5>
+<div class="outline-text-5" id="text-org0f0d985">
+
+<div id="org34ff5ea" class="figure">
+<p><img src="../assets/img/httpkit.ring-middleware.async.java15.ZGC.r30k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ZGC.r30k.t16.c400.d600s.png" />
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgd37ac4d" class="outline-4">
+<h4 id="orgd37ac4d">At high rates</h4>
+<div class="outline-text-4" id="text-orgd37ac4d">
+<p>
+At 60k qps we see a very different behavior, where ParallelGC offers
+better response times:
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="org-right">% tile</td>
+<td class="org-left">ParallelGC</td>
+<td class="org-left">G1GC</td>
+<td class="org-left">ShenandoahGC</td>
+<td class="org-left">ZGC</td>
+</tr>
+
+<tr>
+<td class="org-right">50.000%</td>
+<td class="org-left">1.10ms</td>
+<td class="org-left">1.34ms</td>
+<td class="org-left">1.40ms</td>
+<td class="org-left">1.43ms</td>
+</tr>
+
+<tr>
+<td class="org-right">75.000%</td>
+<td class="org-left">1.49ms</td>
+<td class="org-left">1.83ms</td>
+<td class="org-left">1.91ms</td>
+<td class="org-left">1.93ms</td>
+</tr>
+
+<tr>
+<td class="org-right">90.000%</td>
+<td class="org-left">1.87ms</td>
+<td class="org-left">2.40ms</td>
+<td class="org-left">2.61ms</td>
+<td class="org-left">2.47ms</td>
+</tr>
+
+<tr>
+<td class="org-right">99.000%</td>
+<td class="org-left">4.34ms</td>
+<td class="org-left">9.13ms</td>
+<td class="org-left">11.33ms</td>
+<td class="org-left">9.18ms</td>
+</tr>
+
+<tr>
+<td class="org-right">99.900%</td>
+<td class="org-left">34.27ms</td>
+<td class="org-left">79.87ms</td>
+<td class="org-left">82.88ms</td>
+<td class="org-left">41.95ms</td>
+</tr>
+
+<tr>
+<td class="org-right">99.990%</td>
+<td class="org-left">73.54ms</td>
+<td class="org-left">766.46ms</td>
+<td class="org-left">530.94ms</td>
+<td class="org-left">531.46ms</td>
+</tr>
+
+<tr>
+<td class="org-right">99.999%</td>
+<td class="org-left">95.61ms</td>
+<td class="org-left">978.94ms</td>
+<td class="org-left">954.88ms</td>
+<td class="org-left">955.39ms</td>
+</tr>
+
+<tr>
+<td class="org-right">100.000%</td>
+<td class="org-left">134.65ms</td>
+<td class="org-left">1.00s</td>
+<td class="org-left">1.00s</td>
+<td class="org-left">1.00s</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+What do these results mean? I'm not sure. Not only is ParallelGC
+better than all other collectors, all collectors exhibit better
+response times at 60k than at 30k qps.
+</p>
+
+<p>
+It's possible at these rates the application becomes throughput
+dominated which would explain why ParallelGC performs better at the
+tail percentiles.
+</p>
+
+<p>
+Any explanation of these results would be welcome.
+</p>
+
+<p>
+As before, plots of these results can be found below:
+</p>
+</div>
+
+<div id="outline-container-org793bd18" class="outline-5">
+<h5 id="org793bd18">G1GC</h5>
+<div class="outline-text-5" id="text-org793bd18">
+
+<div id="org0f56cc0" class="figure">
+<p><img src="../assets/img/httpkit.ring-middleware.async.java15.G1GC.r60k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.G1GC.r60k.t16.c400.d600s.png" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org5b5af75" class="outline-5">
+<h5 id="org5b5af75">ParallelGC</h5>
+<div class="outline-text-5" id="text-org5b5af75">
+
+<div id="org453d194" class="figure">
+<p><img src="../assets/img/httpkit.ring-middleware.async.java15.ParallelGC.r60k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ParallelGC.r60k.t16.c400.d600s.png" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb653ce9" class="outline-5">
+<h5 id="orgb653ce9">ShenandoahGC</h5>
+<div class="outline-text-5" id="text-orgb653ce9">
+
+<div id="orgd3ed804" class="figure">
+<p><img src="../assets/img/httpkit.ring-middleware.async.java15.ShenandoahGC.r60k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ShenandoahGC.r60k.t16.c400.d600s.png" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org26b55c3" class="outline-5">
+<h5 id="org26b55c3">ZGC</h5>
+<div class="outline-text-5" id="text-org26b55c3">
+
+<div id="org897470d" class="figure">
+<p><img src="../assets/img/httpkit.ring-middleware.async.java15.ZGC.r60k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ZGC.r60k.t16.c400.d600s.png" />
+</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org80a428a" class="outline-3">
+<h3 id="org80a428a">CPU Profiling</h3>
+<div class="outline-text-3" id="text-org80a428a">
+<p>
+By embedding <a href="https://github.com/clojure-goes-fast/clj-async-profiler">clj-async-profiler</a> in the application, I was able to
+profile its behavior under load. We can use these results to
+understand where we're being wasteful of CPU cycles.
+</p>
+
+
+<div id="org73514ec" class="figure">
+<p><object type="image/svg+xml" data="../assets/img/httpkit.ring-middleware.async.java15.ParallelGC.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+<p>
+We can recognize several areas of interest in the graph:
+</p>
+</div>
+
+<div id="outline-container-org86418bb" class="outline-4">
+<h4 id="org86418bb">ring.middleware.params/params-request</h4>
+<div class="outline-text-4" id="text-org86418bb">
+<p>
+Takes about 13% of CPU, why is it so expensive?
+</p>
+
+<p>
+If you zoom in on it, two things should draw your attention:
+</p>
+
+<ul class="org-ul">
+<li><code>merge-with</code> <code>merge</code>, two relatively wasteful functions, called in
+<code>assoc-query-params</code> and <code>assoc-form-params</code></li>
+<li><code>parse-params</code> uses regular expressions</li>
+</ul>
+
+<p>
+On their own, these are not severe problems which require remedy,
+but when dealing with high work loads, <code>merge</code> and regular
+expressions on the hot-path have a measurable cost.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org5d55b80" class="outline-4">
+<h4 id="org5d55b80">reitit.coercion/coerce-request</h4>
+<div class="outline-text-4" id="text-org5d55b80">
+<p>
+Another 13% of CPU, with two thirds of it accounted for by
+<code>clojure.walk/keywordize-keys</code>.
+</p>
+
+<p>
+The rest is malli's coercion which could probably be optimized some
+more.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgb1e5da9" class="outline-4">
+<h4 id="orgb1e5da9">Server specific</h4>
+<div class="outline-text-4" id="text-orgb1e5da9">
+<p>
+Each implementation would have its own issues, but if we take
+http-kit as the current example, take a look at the 3rd stack from
+the right, <code>org.httpkit.server.ClojureRing.buildRequestMap</code>.
+It can be cut in half.
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org1fbc451" class="outline-2">
+<h2 id="org1fbc451">Surprises, pitfalls and rakes in dark sheds</h2>
+<div class="outline-text-2" id="text-org1fbc451">
+<p>
+One of the biggest pitfalls when referring to examples is they might
+not be optimized for our use case.
+</p>
+
+<p>
+Yes, it was written clearly in <a href="https://github.com/metosin/reitit/blob/master/doc/performance.md#faster">reitit's</a> and <a href="https://github.com/metosin/muuntaja#encoding-format">muuntaja's</a> documentation.
+Do you always refer back to the documentation when you already <b>think</b>
+you know?
+</p>
+</div>
+
+<div id="outline-container-org0051cb5" class="outline-3">
+<h3 id="org0051cb5">inject match &amp; inject route</h3>
+<div class="outline-text-3" id="text-org0051cb5">
+<p>
+By default, reitit's ring handler injects the route and match
+objects to the request. It's great for development time and
+dynamism, not so much for performance. Removing this option easily
+shaves off a few % from CPU.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org302993f" class="outline-3">
+<h3 id="org302993f">return bytes from muuntaja</h3>
+<div class="outline-text-3" id="text-org302993f">
+<p>
+As I was analyzing the flame graphs (you can probably find them in
+the git history) I found that http-kit was wasting a lot of CPU
+between taking the response out of the AsyncChannel and writing it
+to the NIO socket, creating DynamicBytes.
+</p>
+
+<p>
+It took me some time to realize that the body it was handling wasn't
+a byte-array, but an InputStream, so instead of taking the optimized
+code path, it read the entire stream to a dynamic byte buffer then
+wrote it to the NIO socket.
+</p>
+
+<p>
+Who was sending an InputStream back? Turns out, it was me.
+Muuntaja's default behavior is returning an input stream, and it has
+to be configured explicitly to return a byte array, which is faster
+for jsonista to write and for other libraries to consume.
+</p>
+
+<p>
+It was written clearly in the documentation, it's just been a long
+time since I referred to it, so I missed it.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgc9dc933" class="outline-3">
+<h3 id="orgc9dc933">Bugs</h3>
+<div class="outline-text-3" id="text-orgc9dc933">
+</div>
+<div id="outline-container-orgd0ecced" class="outline-4">
+<h4 id="orgd0ecced">Constant cache miss in muuntaja</h4>
+<div class="outline-text-4" id="text-orgd0ecced">
+<p>
+In previous iterations (months ago) I found that muuntaja was
+consistently recalculating a value which was supposed to be cached.
+</p>
+
+<blockquote>
+<p>
+content-type is not required for GET requests. Not providing content
+type causes fast-memoize to always cache miss and run. It is simple to
+fix, will provide a MR - <a href="https://github.com/metosin/muuntaja/issues/123">#123</a>
+</p>
+</blockquote>
+</div>
+</div>
+
+<div id="outline-container-orgb98c6dd" class="outline-4">
+<h4 id="orgb98c6dd">Aleph memory leak</h4>
+<div class="outline-text-4" id="text-orgb98c6dd">
+<p>
+Aleph used to give ridiculous response times after long enough runs
+(few minutes), indicating a probable memory leak. Attaching to the
+running server with VisualVM revealed that was indeed the situation.
+</p>
+
+<p>
+I'm still not even sure what caused this leak, I've been unable to
+find the source, but after returning bytes from muuntaja and not
+injecting the match and route it went away.
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgbf06cb2" class="outline-2">
+<h2 id="orgbf06cb2">Coda</h2>
+<div class="outline-text-2" id="text-orgbf06cb2">
+</div>
+<div id="outline-container-org2f8a3da" class="outline-3">
+<h3 id="org2f8a3da">How fast can we go, exactly?</h3>
+<div class="outline-text-3" id="text-org2f8a3da">
+<p>
+I haven't found the limit for each server yet, but with minimal
+configuration we can get over 60k qps on a 8 core Intel i7-6820HQ on
+a Dell laptop.
+</p>
+
+<p>
+Unless you have huge scale problems, I wouldn't worry about it.
+</p>
+
+<p>
+If you have scale problems and your servers are on fire, consider
+maybe you're doing something you shouldn't, like blocking the event
+loop. The servers, even with stock somewhat wasteful middleware, can
+handle it.
+</p>
+</div>
+
+<div id="outline-container-org6239e79" class="outline-4">
+<h4 id="org6239e79">"I think I have performance problems"</h4>
+<div class="outline-text-4" id="text-org6239e79">
+<p>
+Before you start tearing out servers or rushing to rewrite your
+application, remember to make an informed decision. To make that,
+you need information. Profile your application, preferably under
+real operating conditions.
+</p>
+
+<p>
+Making sure you aren't blocking some event loop and that your
+threads and pools are allocated sensibly first.
+</p>
+
+<p>
+In short:
+</p>
+<ul class="org-ul">
+<li>ensure the architecture is correct</li>
+<li>gather <i>relevant</i> data</li>
+<li>optimize</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgc4c71cb" class="outline-3">
+<h3 id="orgc4c71cb">Connecting non-blocking ring handler with http-kit</h3>
+<div class="outline-text-3" id="text-orgc4c71cb">
+<p>
+http-kit's channel lets us transform a non-blocking ring handler to
+one which its server can use.
+</p>
+
+<p>
+The "right" place to transform the handler is at the edge, see
+<code>start-server</code>.
+</p>
+
+<p>
+It may be useful to invoke the handler in another thread pool, which
+I have not tested yet.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span>require '<span style="color: #bc6ec5;">[</span>org.httpkit.server <span style="color: #a45bad;">:as</span> http<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">respond</span>
+  <span style="color: #bc6ec5;">[</span>channel<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #bc6ec5; font-weight: bold;">-respond</span> <span style="color: #2d9574;">[</span>response<span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">http</span>/send! channel response<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">raise</span>
+  <span style="color: #bc6ec5;">[</span>channel<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #bc6ec5; font-weight: bold;">-raise</span> <span style="color: #2d9574;">[</span>?error<span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">http</span>/send! channel ?error<span style="color: #2d9574;">)</span>
+    <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">http</span>/close channel<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">ring-&gt;httpkit</span>
+  <span style="color: #bc6ec5;">[</span>handler<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #bc6ec5; font-weight: bold;">httpkit-&gt;async</span> <span style="color: #2d9574;">[</span>request<span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">when-let</span> <span style="color: #67b11d;">[</span>ch <span style="color: #b1951d;">(</span>request <span style="color: #a45bad;">:async-channel</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">]</span>
+      <span style="color: #67b11d;">(</span>handler request <span style="color: #b1951d;">(</span>respond ch<span style="color: #b1951d;">)</span> <span style="color: #b1951d;">(</span>raise ch<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">{</span><span style="color: #a45bad;">:body</span> ch<span style="color: #67b11d;">}</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">start-server</span>
+  <span style="color: #bc6ec5;">[</span>options<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">http</span>/run-server <span style="color: #2d9574;">(</span>ring-&gt;httpkit handler<span style="color: #2d9574;">)</span> options<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org2982808" class="outline-3">
+<h3 id="org2982808">Default configurations</h3>
+<div class="outline-text-3" id="text-org2982808">
+</div>
+<div id="outline-container-orgadc5888" class="outline-4">
+<h4 id="orgadc5888">reitit</h4>
+<div class="outline-text-4" id="text-orgadc5888">
+<p>
+Remember to disable match and router injection when instantiating
+the ring-handler
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">ring</span>/ring-handler
+ <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">ring</span>/router
+  routes
+  router-options<span style="color: #bc6ec5;">)</span>
+ default-handler
+ <span style="color: #bc6ec5;">{</span><span style="color: #a45bad;">:inject-match?</span> <span style="color: #a45bad;">false</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">these two right here!</span>
+  <span style="color: #a45bad;">:inject-router?</span> <span style="color: #a45bad;">false</span><span style="color: #bc6ec5;">}</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf31958b" class="outline-4">
+<h4 id="orgf31958b">muuntaja</h4>
+<div class="outline-text-4" id="text-orgf31958b">
+<p>
+When performance matters, make sure to set the return type to <code>bytes</code>
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">m</span>/create <span style="color: #bc6ec5;">(</span>merge <span style="color: #ce537a; font-weight: bold;">m</span>/default-options <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:return</span> <span style="color: #a45bad;">:bytes</span><span style="color: #2d9574;">}</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+plug the muuntaja instance in <code>router-options</code> at <code>[:data :muuntaja]</code>.
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org5c9fac7" class="outline-2">
+<h2 id="org5c9fac7">Future plans</h2>
+<div class="outline-text-2" id="text-org5c9fac7">
+<p>
+First order of business is pushing each configuration to its breaking
+point, just so see how far we can go. That's before doing any
+optimization or tuning.
+</p>
+
+<p>
+Next will be a post which explains the profiling process and
+automation the performance space search, saving the need to manually
+set the run rates.
+</p>
+
+<p>
+Once the profiling process is fully automated, I'll be able to throw
+in additional JDKs into the mix.
+</p>
+
+<p>
+On a different track, the results of these experiments have already
+birthed several PRs to ring, reitit and http-kit. Once they are merged
+I can rerun all the experiments with them and get new and improved
+results. My poor machine.
+</p>
+
+<p>
+Finally, there is certainly room for informed design optimizations, such
+as thread pools assignment. It's possible some servers have been using
+the same pool for the event loop and processing requests which
+degraded their results.
+</p>
+</div>
+</div>
