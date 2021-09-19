@@ -17,9 +17,22 @@ categories: [clojure, "web servers" ,"performance"]
   challenge. In this series I'll share and walk through the results of a
   [[https://github.com/bsless/stress-server][web servers profiling project]] I have been working on.
 
+  My goal? a humble one. Find the best web server in the Clojure ecosystem, and
+  the best way to configure and run the available servers. Along the way, I have
+  already found and PR-ed performance improvement opportunities.
+
+* Who won?
+
   Initial results show that even a naive, non optimized solution with
   off the shelf routing and server frameworks can easily serve 60k qps
   on 8 CPU cores with good response times.
+
+  As of writing this post, the surprising winners are http-kit and pohjavirta.
+  These are the only servers which managed to get good response times at high
+  percentiles. Also, you should prefer the latest JDKs.
+
+  I expect in the future to see more servers join this illustrious bunch as the
+  ring and reitit performance PRs make their way in.
 
 * What is fast?
 
