@@ -1,0 +1,456 @@
+#+TITLE: Fast and Elegant Clojure
+
+#+OPTIONS: toc:nil num:nil
+#+BEGIN_EXPORT html
+---
+layout: post
+title: "Fast and Elegant Clojure"
+subtitle: "Idiomatic Clojure without sacrificing performance"
+permalink: /:title/
+tags: [clojure, "idiomatic" ,"performance"]
+categories: [clojure, "idiomatic" ,"performance"]
+---
+#+END_EXPORT
+
+A couple of weeks ago a [[https://news.ycombinator.com/item?id=28723447][comment on HN]] caught my eye:
+
+#+begin_quote
+I write Clojure for food, and Common Lisp for fun. One reason for the
+latter is CL's speed -- awhile back I compared a bit of (non-optimized)
+Clojure code I wrote for a blog post with a rough equivalent in CL, and
+was stunned that the Common Lisp code ran about 10x faster. This made me
+curious as to how fast it could be made if I really tried, and was able
+to get nearly 30x more[[http://johnj.com/from-elegance-to-speed.html][1]] by optimizing it.
+
+Clojure is definitely fast enough for everything I've done
+professionally for six years. But Common Lisp, while having plenty of
+rough edges, intrigues on the basis of performance alone. (This is on
+SBCL -- I have yet to play with a commercial implementation.)
+#+end_quote
+
+And I took that personally.
+
+[[https://noahtheduke.github.io/posts/2021-10-02-from-elegance-to-speed-with-clojure/][I wasn't the only one, either]].
+
+* The Premise
+
+** Non Optimized Clojure Is Slow
+
+This premise hides two assumptions:
+- Idiomatic Clojure is slow
+- Optimized Clojure is non idiomatic
+
+  Let us examine these assumptions by looking at the original implementation:
+
+  #+begin_src clojure
+    (defn smt-8 [times]
+      (->> times
+           (partition 8 1)
+           (map (juxt identity
+                      (comp (partial apply -)
+                            (juxt last first))))
+           (filter (comp (partial > 1000) second))))
+  #+end_src
+
+  There is absolutely nothing wrong with it. It's correct and
+  demonstrates a good use of composition.
+
+  It is, however, far from optimal, even in terms of Clojure's performance.
+  
+  As we'll see further on, by refactoring this function our code will be
+  both more idiomatic and perform better.
+
+* Baseline
+
+Setting up some test data, we can get a baseline measurement:
+
+#+begin_src clojure
+  (require '[criterium.core :as cc])
+  (def times-v (into [] (take 1e6) (iterate #(+ % (rand-int 1000)) 0)))
+  (cc/quick-bench (doall (smt-8 times-v)))
+  ;; Evaluation count : 6 in 6 samples of 1 calls.
+  ;;              Execution time mean : 1.134559 sec
+  ;;     Execution time std-deviation : 29.296718 ms
+  ;;    Execution time lower quantile : 1.116004 sec ( 2.5%)
+  ;;    Execution time upper quantile : 1.182402 sec (97.5%)
+  ;;                    Overhead used : 2.079753 ns
+#+end_src
+
+It's important to note an initial oversight by the author, who
+benchmarked his code against a lazily generated sequence.
+
+I gave the code a head start by realizing it in a vector.
+
+Throughout this post I benchmark with only one input collection size.
+You can either believe me that performance scales linearly for all
+implementations, or check for yourselves.
+  
+* First Step - the missing transducer
+
+This use case is perfect for transducers. They were written exactly
+for a series of sequence transformations:
+
+#+begin_src clojure
+  (->> xs
+       (map f)
+       (filter g)
+       (map h))
+  ;; is equivalent to =>
+  (sequence
+   (comp
+    (map f)
+    (filter g)
+    (map h))
+   xs)
+#+end_src
+
+With the added bonus of removing intermediary allocations. That's
+pretty neat. The only problem is we're missing a crucial component.
+There is no transducer equivalent to ~(partition n step coll)~.
+
+Are we doomed? Not quite.
+
+There is a close transducer, ~partition-all~, which has no step
+arity. Let's look at how it's implemented:
+
+#+begin_src clojure
+  (defn partition-all
+    ([^long n]
+     (fn [rf]
+       (let [a (java.util.ArrayList. n)]
+         (fn
+           ([] (rf))
+           ([result]
+            (let [result (if (.isEmpty a)
+                           result
+                           (let [v (vec (.toArray a))]
+                             ;;clear first!
+                             (.clear a)
+                             (unreduced (rf result v))))]
+              (rf result)))
+           ([result input]
+            (.add a input)
+            (if (= n (.size a))
+              (let [v (vec (.toArray a))]
+                (.clear a)
+                (rf result v))
+              result)))))))
+#+end_src
+
+If we wanted a sliding window, all we have to do was replace the
+ArrayList with a Queue!
+
+#+begin_src clojure
+  (defn sliding
+    ([^long n]
+     (sliding n 1))
+    ([^long n ^long step]
+     (fn [rf]
+       (let [a (java.util.ArrayDeque. n)] ;; Queue here
+         (fn
+           ([] (rf))
+           ([result]
+            (let [result (if (.isEmpty a)
+                           result
+                           (let [v (vec (.toArray a))]
+                             ;;clear first!
+                             (.clear a)
+                             (unreduced (rf result v))))]
+              (rf result)))
+           ([result input]
+            (.add a input)
+            (if (= n (.size a))
+              (let [v (vec (.toArray a))]
+                ;; Remove `step` elements instead of clear
+                (dotimes [_ step] (.removeFirst a))
+                (rf result v))
+              result)))))))
+#+end_src
+
+Let's convinces ourselves it works:
+
+#+begin_src clojure
+  (sequence (sliding 3 1) '[a b c d e]);; => ([a b c] [b c d] [c d e] [d e])
+#+end_src
+
+Now we can define an equivalent transducer:
+
+#+begin_src clojure
+  (def baseline-xf
+    (comp
+     (sliding 8 1)
+     (map (juxt identity
+                (comp (partial apply -)
+                      (juxt last first))))
+     (filter (comp (partial > 1000) second))))
+
+  (cc/quick-bench (doall (sequence baseline-xf times-v)))
+  ;; Evaluation count : 6 in 6 samples of 1 calls.
+  ;;              Execution time mean : 462.921956 ms
+  ;;     Execution time std-deviation : 20.213288 ms
+  ;;    Execution time lower quantile : 453.931650 ms ( 2.5%)
+  ;;    Execution time upper quantile : 497.963799 ms (97.5%)
+  ;;                    Overhead used : 2.079753 ns
+#+end_src
+
+ And we're already ~2.5x faster
+
+* De-composing
+
+ How much overhead is there to all this functional composition? Let's
+ find out:
+
+#+begin_src clojure
+(def decomposed-xf
+  (comp
+   (sliding 8 1)
+   (map (fn [v] [v (- (last v) (first v))]))
+   (filter (fn [[_ t]] (> 1000 t)))))
+
+(cc/quick-bench (doall (sequence decomposed-xf times-v)))
+;;                 Evaluation count : 6 in 6 samples of 1 calls.
+;;              Execution time mean : 351.568027 ms
+;;     Execution time std-deviation : 759.033184 µs
+;;    Execution time lower quantile : 350.854161 ms ( 2.5%)
+;;    Execution time upper quantile : 352.427674 ms (97.5%)
+;;                    Overhead used : 2.079753 ns
+
+#+end_src
+
+25% faster? How come? The culprit is mainly ~apply~. ~juxt~ returns a
+vector of two elements and apply takes it back apart, one element at a
+time. Iteration has its price.
+
+* Faster vector operations
+
+ ~first~ and ~last~ will work on pretty much everything, including Java
+ arrays. It does not mean, however, it is a good idea.
+ Vectors can be accessed faster using indexed access.
+
+ Since our last vector won't have 8 elements, we can generically get the
+ last element by using peek. Looking at its docstring:
+ #+begin_quote
+  For a list or queue, same as first, for a vector, same as, but much
+  more efficient than, last. If the collection is empty, returns nil.
+ #+end_quote
+
+#+begin_src clojure
+(def vector-xf
+  (comp
+   (sliding 8 1)
+   (map (fn [v] [v (- (peek v) (nth v 0))]))
+   (filter (fn [[_ t]] (> 1000 t)))))
+
+(cc/quick-bench (doall (sequence vector-xf times-v)))
+;; Evaluation count : 12 in 6 samples of 2 calls.
+;;              Execution time mean : 86.004857 ms
+;;     Execution time std-deviation : 87.076601 µs
+;;    Execution time lower quantile : 85.837271 ms ( 2.5%)
+;;    Execution time upper quantile : 86.062956 ms (97.5%)
+;;                    Overhead used : 2.079753 ns
+#+end_src
+
+ Now we're beginning to see some dramatic improvements. It is mostly due
+ to the overhead of ~last~, which *always* iterates over the input
+ collection, and does not even take the most efficient code paths to do
+ so.
+
+* Something between map and filter
+
+Ideally, we would have liked to only allocate the vector in the ~map~
+transducer if the condition in ~filter~ is satisfied. Can we? Enter ~keep~:
+
+#+begin_quote
+Returns a lazy sequence of the non-nil results of (f item). Note,
+this means false return values will be included.  f must be free of
+side-effects.  Returns a transducer when no collection is provided.
+#+end_quote
+
+Turns out, that's exactly what we needed. We can then discard the
+difference calculation and not allocate another vector:
+
+#+begin_src clojure
+(def keep-xf
+  (comp
+   (sliding 8 1)
+   (keep (fn [v]
+           (when (> 1000 (- (peek v) (nth v 0)))
+             v)))))
+
+(cc/quick-bench (doall (sequence keep-xf times-v)))
+;; Evaluation count : 12 in 6 samples of 2 calls.
+;;              Execution time mean : 75.370382 ms
+;;     Execution time std-deviation : 351.859789 µs
+;;    Execution time lower quantile : 75.041801 ms ( 2.5%)
+;;    Execution time upper quantile : 75.967303 ms (97.5%)
+;;                    Overhead used : 2.079753 ns
+#+end_src
+
+Even faster, but not by much. Can we go faster?
+
+Up to this point, we can pat ourselves on the back and say our code is
+still idiomatic on one hand, but performs way better on the other. About
+15x faster, while non optimized CL was only 10x faster.
+
+As an added bonus, this looks pretty idiomatic.
+
+* Aside: wasn't the sliding transducer an optimization?
+
+You could argue that it is. Or that it's a missing piece. It should
+probably live in a library. I also don't think it was complicated to
+derive, although transducers might be unwieldy for beginners.
+
+Compare the initial snippet with the final version:
+
+#+begin_src clojure
+  (defn smt-8 [times]
+    (->> times
+         (partition 8 1)
+         (map (juxt identity
+                    (comp (partial apply -)
+                          (juxt last first))))
+         (filter (comp (partial > 1000) second))))
+
+  (def keep-xf
+    (comp
+     (sliding 8 1)
+     (keep (fn [v]
+             (when (> 1000 (- (peek v) (nth v 0)))
+               v)))))
+#+end_src
+
+I would consider the latter way more idiomatic /and/ concise.
+
+* Slightly less idiomatic
+
+Do we have to get the results back as vectors? If we relax this
+requirement, we can skip over wrapping the results in the sliding
+transducer in a vector:
+
+#+begin_src clojure
+(defn sliding-array
+  ([^long n ^long step]
+   (fn [rf]
+     (let [a (java.util.ArrayDeque. n)]
+       (fn
+         ([] (rf))
+         ([result]
+          (let [result (if (.isEmpty a)
+                         result
+                         (let [v (.toArray a)]
+                           ;;clear first!
+                           (.clear a)
+                           (unreduced (rf result v))))]
+            (rf result)))
+         ([result input]
+          (.add a input)
+          (if (= n (.size a))
+            (let [v (.toArray a)]
+              ;; Remove `step` elements instead of clear
+              (dotimes [_ step] (.removeFirst a))
+              (rf result v))
+            result)))))))
+#+end_src
+
+Then, modify the argument to ~keep~ to take an array:
+
+#+begin_src clojure
+(def array-xf
+  (comp
+   (sliders 8 1)
+   (keep (fn [^objects arr]
+           (when (> 1000 (- (long (aget arr (unchecked-dec-int (alength arr))))
+                            (long (aget arr 0))))
+             arr)))))
+#+end_src
+
+ This is becoming slightly unwieldy so let's just sprinkle a little macro on top:
+
+#+begin_src clojure
+(defmacro alast
+  [arr]
+  `(aget ~arr (unchecked-dec-int (alength ~arr))))
+
+(def array-xf
+  (comp
+   (sliders 8 1)
+   (keep (fn [^objects arr]
+           (when (> 1000 (- (long (alast arr)) (long (aget arr 0))))
+             arr)))))
+#+end_src
+
+And the results:
+
+#+begin_src clojure
+(cc/quick-bench (doall (sequence array-xf times-v)))
+;; Evaluation count : 30 in 6 samples of 5 calls.
+;;              Execution time mean : 24.417962 ms
+;;     Execution time std-deviation : 425.377564 µs
+;;    Execution time lower quantile : 24.022441 ms ( 2.5%)
+;;    Execution time upper quantile : 24.998770 ms (97.5%)
+;;                    Overhead used : 2.079753 ns
+#+end_src
+
+Another 3x speedup, new 46x times faster than the original, without
+going crazy with interop, optimization or some unrolling.
+
+* But can we go faster?
+
+Let us put aside our requirement for idiomatic Clojure. Let's settle on readable.
+
+By converting the input to an array, we can work directly with indices
+and built up the results collection. We'll also take advantage of the
+fact that linked lists are pretty fast to allocate, so build those
+instead of a vector or set:
+
+#+begin_src clojure
+  (defn unrolled
+    [^longs arr]
+    (let [l (unchecked-subtract-int (alength arr) 8)]
+      (loop [idx (int 0) agg ()]
+        (if (< idx l)
+          (recur
+           (unchecked-inc-int idx)
+           (if (> 1000 (- (aget arr (unchecked-add-int idx 8)) (aget arr idx)))
+             (.cons agg idx)
+             agg))
+          agg))))
+
+  (let [arr (long-array times-v)]
+    (cc/quick-bench (unrolled arr)))
+
+  ;; Evaluation count : 522 in 6 samples of 87 calls.
+  ;;              Execution time mean : 1.156237 ms
+  ;;     Execution time std-deviation : 1.555163 µs
+  ;;    Execution time lower quantile : 1.154193 ms ( 2.5%)
+  ;;    Execution time upper quantile : 1.157862 ms (97.5%)
+  ;;                    Overhead used : 2.079753 ns
+#+end_src
+
+Another 21x speedup!
+
+This implementation is very different. It deals with a concrete array
+instead of a sequence abstraction, and explicitly builds up the result.
+It allocates a lot less and sequentially accesses memory.
+
+It's more similar to a solution in Java then Clojure, but it's pretty
+readable. It might even be more readable to programmers unfamiliar with
+Clojure.
+
+I feel pretty comfortable saying that Clojure is not slow. I did not
+even have to disassemble it, tweak anything, or write complicated code.
+
+The gains here are a result of a few actions:
+- cutting down on allocation
+  - partition -> sliding
+  - lazy sequences -> transducers
+  - map / filter -> keep
+- cutting down on iteration
+  - last -> peek
+  - juxt / apply -> direct function calls
+- Using primitives instead of collections
+  - Vectors -> arrays make for faster access
+  - Working directly with arrays and contiguous memory access
+
+
+Happy hacking

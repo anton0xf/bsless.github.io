@@ -1,0 +1,609 @@
+---
+layout: post
+title: "Fast and Elegant Clojure"
+subtitle: "Idiomatic Clojure without sacrificing performance"
+permalink: /:title/
+tags: [clojure, "idiomatic" ,"performance"]
+categories: [clojure, "idiomatic" ,"performance"]
+---
+
+<p>
+A couple of weeks ago a <a href="https://news.ycombinator.com/item?id=28723447">comment on HN</a> caught my eye:
+</p>
+
+<blockquote>
+<p>
+I write Clojure for food, and Common Lisp for fun. One reason for the
+latter is CL's speed &#x2013; awhile back I compared a bit of (non-optimized)
+Clojure code I wrote for a blog post with a rough equivalent in CL, and
+was stunned that the Common Lisp code ran about 10x faster. This made me
+curious as to how fast it could be made if I really tried, and was able
+to get nearly 30x more<a href="http://johnj.com/from-elegance-to-speed.html">1</a> by optimizing it.
+</p>
+
+<p>
+Clojure is definitely fast enough for everything I've done
+professionally for six years. But Common Lisp, while having plenty of
+rough edges, intrigues on the basis of performance alone. (This is on
+SBCL &#x2013; I have yet to play with a commercial implementation.)
+</p>
+</blockquote>
+
+<p>
+And I took that personally.
+</p>
+
+<p>
+<a href="https://noahtheduke.github.io/posts/2021-10-02-from-elegance-to-speed-with-clojure/">I wasn't the only one, either</a>.
+</p>
+
+<div id="outline-container-org73465a9" class="outline-2">
+<h2 id="org73465a9">The Premise</h2>
+<div class="outline-text-2" id="text-org73465a9">
+</div>
+<div id="outline-container-org7a75755" class="outline-3">
+<h3 id="org7a75755">Non Optimized Clojure Is Slow</h3>
+<div class="outline-text-3" id="text-org7a75755">
+<p>
+This premise hides two assumptions:
+</p>
+<ul class="org-ul">
+<li>Idiomatic Clojure is slow</li>
+<li><p>
+Optimized Clojure is non idiomatic
+</p>
+
+<p>
+Let us examine these assumptions by looking at the original implementation:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">smt-8</span> <span style="color: #bc6ec5;">[</span>times<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> times
+       <span style="color: #2d9574;">(</span>partition <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span>juxt identity
+                  <span style="color: #b1951d;">(</span>comp <span style="color: #4f97d7;">(</span>partial apply -<span style="color: #4f97d7;">)</span>
+                        <span style="color: #4f97d7;">(</span>juxt last first<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #a45bad;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+There is absolutely nothing wrong with it. It's correct and
+demonstrates a good use of composition.
+</p>
+
+<p>
+It is, however, far from optimal, even in terms of Clojure's performance.
+</p>
+
+<p>
+As we'll see further on, by refactoring this function our code will be
+both more idiomatic and perform better.
+</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf4d7e28" class="outline-2">
+<h2 id="orgf4d7e28">Baseline</h2>
+<div class="outline-text-2" id="text-orgf4d7e28">
+<p>
+Setting up some test data, we can get a baseline measurement:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span>require '<span style="color: #bc6ec5;">[</span>criterium.core <span style="color: #a45bad;">:as</span> cc<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span>
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">times-v</span> <span style="color: #bc6ec5;">(</span>into <span style="color: #2d9574;">[]</span> <span style="color: #2d9574;">(</span>take <span style="color: #a45bad;">1e6</span><span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>iterate #<span style="color: #67b11d;">(</span>+ <span style="color: #7590db;">%</span> <span style="color: #b1951d;">(</span>rand-int <span style="color: #a45bad;">1000</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span> <span style="color: #a45bad;">0</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>smt-8 times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 6 in 6 samples of 1 calls.</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 1.134559 sec</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 29.296718 ms</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 1.116004 sec ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 1.182402 sec (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
+</pre>
+</div>
+
+<p>
+It's important to note an initial oversight by the author, who
+benchmarked his code against a lazily generated sequence.
+</p>
+
+<p>
+I gave the code a head start by realizing it in a vector.
+</p>
+
+<p>
+Throughout this post I benchmark with only one input collection size.
+You can either believe me that performance scales linearly for all
+implementations, or check for yourselves.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org2e4f049" class="outline-2">
+<h2 id="org2e4f049">First Step - the missing transducer</h2>
+<div class="outline-text-2" id="text-org2e4f049">
+<p>
+This use case is perfect for transducers. They were written exactly
+for a series of sequence transformations:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> xs
+     <span style="color: #bc6ec5;">(</span>map f<span style="color: #bc6ec5;">)</span>
+     <span style="color: #bc6ec5;">(</span>filter g<span style="color: #bc6ec5;">)</span>
+     <span style="color: #bc6ec5;">(</span>map h<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">is equivalent to =&gt;</span>
+<span style="color: #4f97d7;">(</span>sequence
+ <span style="color: #bc6ec5;">(</span>comp
+  <span style="color: #2d9574;">(</span>map f<span style="color: #2d9574;">)</span>
+  <span style="color: #2d9574;">(</span>filter g<span style="color: #2d9574;">)</span>
+  <span style="color: #2d9574;">(</span>map h<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span>
+ xs<span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+With the added bonus of removing intermediary allocations. That's
+pretty neat. The only problem is we're missing a crucial component.
+There is no transducer equivalent to <code>(partition n step coll)</code>.
+</p>
+
+<p>
+Are we doomed? Not quite.
+</p>
+
+<p>
+There is a close transducer, <code>partition-all</code>, which has no step
+arity. Let's look at how it's implemented:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">partition-all</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #2d9574;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> n<span style="color: #2d9574;">]</span>
+   <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #67b11d;">[</span>rf<span style="color: #67b11d;">]</span>
+     <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #4f97d7;">(</span>java.util.ArrayList. n<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span>
+       <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span>
+         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[]</span> <span style="color: #bc6ec5;">(</span>rf<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result<span style="color: #bc6ec5;">]</span>
+          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #4f97d7;">(</span>.isEmpty a<span style="color: #4f97d7;">)</span>
+                         result
+                         <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #bc6ec5;">[</span>v <span style="color: #2d9574;">(</span>vec <span style="color: #67b11d;">(</span>.toArray a<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">]</span>
+                           <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">clear first!</span>
+                           <span style="color: #bc6ec5;">(</span>.clear a<span style="color: #bc6ec5;">)</span>
+                           <span style="color: #bc6ec5;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result input<span style="color: #bc6ec5;">]</span>
+          <span style="color: #bc6ec5;">(</span>.add a input<span style="color: #bc6ec5;">)</span>
+          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #9cb6ad;">(</span>.size a<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+            <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #9cb6ad;">[</span>v <span style="color: #4f97d7;">(</span>vec <span style="color: #bc6ec5;">(</span>.toArray a<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">]</span>
+              <span style="color: #9cb6ad;">(</span>.clear a<span style="color: #9cb6ad;">)</span>
+              <span style="color: #9cb6ad;">(</span>rf result v<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+            result<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+If we wanted a sliding window, all we have to do was replace the
+ArrayList with a Queue!
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">sliding</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #2d9574;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> n<span style="color: #2d9574;">]</span>
+   <span style="color: #2d9574;">(</span>sliding n <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #2d9574;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> n <span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> step<span style="color: #2d9574;">]</span>
+   <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #67b11d;">[</span>rf<span style="color: #67b11d;">]</span>
+     <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #4f97d7;">(</span>java.util.ArrayDeque. n<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Queue here</span>
+       <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span>
+         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[]</span> <span style="color: #bc6ec5;">(</span>rf<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result<span style="color: #bc6ec5;">]</span>
+          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #4f97d7;">(</span>.isEmpty a<span style="color: #4f97d7;">)</span>
+                         result
+                         <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #bc6ec5;">[</span>v <span style="color: #2d9574;">(</span>vec <span style="color: #67b11d;">(</span>.toArray a<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">]</span>
+                           <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">clear first!</span>
+                           <span style="color: #bc6ec5;">(</span>.clear a<span style="color: #bc6ec5;">)</span>
+                           <span style="color: #bc6ec5;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result input<span style="color: #bc6ec5;">]</span>
+          <span style="color: #bc6ec5;">(</span>.add a input<span style="color: #bc6ec5;">)</span>
+          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #9cb6ad;">(</span>.size a<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+            <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #9cb6ad;">[</span>v <span style="color: #4f97d7;">(</span>vec <span style="color: #bc6ec5;">(</span>.toArray a<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">]</span>
+              <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Remove `</span><span style="color: #a45bad; background-color: #292e34;">step</span><span style="color: #2aa1ae; background-color: #292e34;">` elements instead of clear</span>
+              <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">dotimes</span> <span style="color: #4f97d7;">[</span>_ step<span style="color: #4f97d7;">]</span> <span style="color: #4f97d7;">(</span>.removeFirst a<span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span>
+              <span style="color: #9cb6ad;">(</span>rf result v<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+            result<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+Let's convinces ourselves it works:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span>sequence <span style="color: #bc6ec5;">(</span>sliding <span style="color: #a45bad;">3</span> <span style="color: #a45bad;">1</span><span style="color: #bc6ec5;">)</span> '<span style="color: #bc6ec5;">[</span>a b c d e<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span><span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">=&gt; ([a b c] [b c d] [c d e] [d e])</span>
+</pre>
+</div>
+
+<p>
+Now we can define an equivalent transducer:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">baseline-xf</span>
+  <span style="color: #bc6ec5;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span>juxt identity
+              <span style="color: #b1951d;">(</span>comp <span style="color: #4f97d7;">(</span>partial apply -<span style="color: #4f97d7;">)</span>
+                    <span style="color: #4f97d7;">(</span>juxt last first<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #a45bad;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence baseline-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 6 in 6 samples of 1 calls.</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 462.921956 ms</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 20.213288 ms</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 453.931650 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 497.963799 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
+</pre>
+</div>
+
+<p>
+And we're already ~2.5x faster
+</p>
+</div>
+</div>
+
+<div id="outline-container-org1b51859" class="outline-2">
+<h2 id="org1b51859">De-composing</h2>
+<div class="outline-text-2" id="text-org1b51859">
+<p>
+How much overhead is there to all this functional composition? Let's
+find out:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">decomposed-xf</span>
+  <span style="color: #bc6ec5;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span> <span style="color: #b1951d;">[</span>v <span style="color: #4f97d7;">(</span>- <span style="color: #bc6ec5;">(</span>last v<span style="color: #bc6ec5;">)</span> <span style="color: #bc6ec5;">(</span>first v<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #4f97d7;">[</span>_ t<span style="color: #4f97d7;">]</span><span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #a45bad;">1000</span> t<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence decomposed-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;                 </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 6 in 6 samples of 1 calls.</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 351.568027 ms</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 759.033184 &#181;s</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 350.854161 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 352.427674 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
+
+</pre>
+</div>
+
+<p>
+25% faster? How come? The culprit is mainly <code>apply</code>. <code>juxt</code> returns a
+vector of two elements and apply takes it back apart, one element at a
+time. Iteration has its price.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org0b4e10a" class="outline-2">
+<h2 id="org0b4e10a">Faster vector operations</h2>
+<div class="outline-text-2" id="text-org0b4e10a">
+<p>
+<code>first</code> and <code>last</code> will work on pretty much everything, including Java
+arrays. It does not mean, however, it is a good idea.
+Vectors can be accessed faster using indexed access.
+</p>
+
+<p>
+Since our last vector won't have 8 elements, we can generically get the
+last element by using peek. Looking at its docstring:
+</p>
+<blockquote>
+<p>
+For a list or queue, same as first, for a vector, same as, but much
+more efficient than, last. If the collection is empty, returns nil.
+</p>
+</blockquote>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">vector-xf</span>
+  <span style="color: #bc6ec5;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span> <span style="color: #b1951d;">[</span>v <span style="color: #4f97d7;">(</span>- <span style="color: #bc6ec5;">(</span>peek v<span style="color: #bc6ec5;">)</span> <span style="color: #bc6ec5;">(</span>nth v <span style="color: #a45bad;">0</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #4f97d7;">[</span>_ t<span style="color: #4f97d7;">]</span><span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #a45bad;">1000</span> t<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence vector-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 12 in 6 samples of 2 calls.</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 86.004857 ms</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 87.076601 &#181;s</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 85.837271 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 86.062956 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
+</pre>
+</div>
+
+<p>
+Now we're beginning to see some dramatic improvements. It is mostly due
+to the overhead of <code>last</code>, which <b>always</b> iterates over the input
+collection, and does not even take the most efficient code paths to do
+so.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org17c5fb0" class="outline-2">
+<h2 id="org17c5fb0">Something between map and filter</h2>
+<div class="outline-text-2" id="text-org17c5fb0">
+<p>
+Ideally, we would have liked to only allocate the vector in the <code>map</code>
+transducer if the condition in <code>filter</code> is satisfied. Can we? Enter <code>keep</code>:
+</p>
+
+<blockquote>
+<p>
+Returns a lazy sequence of the non-nil results of (f item). Note,
+this means false return values will be included.  f must be free of
+side-effects.  Returns a transducer when no collection is provided.
+</p>
+</blockquote>
+
+<p>
+Turns out, that's exactly what we needed. We can then discard the
+difference calculation and not allocate another vector:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">keep-xf</span>
+  <span style="color: #bc6ec5;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span>
+           <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #4f97d7;">(</span>&gt; <span style="color: #a45bad;">1000</span> <span style="color: #bc6ec5;">(</span>- <span style="color: #2d9574;">(</span>peek v<span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>nth v <span style="color: #a45bad;">0</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+             v<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence keep-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 12 in 6 samples of 2 calls.</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 75.370382 ms</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 351.859789 &#181;s</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 75.041801 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 75.967303 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
+</pre>
+</div>
+
+<p>
+Even faster, but not by much. Can we go faster?
+</p>
+
+<p>
+Up to this point, we can pat ourselves on the back and say our code is
+still idiomatic on one hand, but performs way better on the other. About
+15x faster, while non optimized CL was only 10x faster.
+</p>
+
+<p>
+As an added bonus, this looks pretty idiomatic.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org92b1527" class="outline-2">
+<h2 id="org92b1527">Aside: wasn't the sliding transducer an optimization?</h2>
+<div class="outline-text-2" id="text-org92b1527">
+<p>
+You could argue that it is. Or that it's a missing piece. It should
+probably live in a library. I also don't think it was complicated to
+derive, although transducers might be unwieldy for beginners.
+</p>
+
+<p>
+Compare the initial snippet with the final version:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">smt-8</span> <span style="color: #bc6ec5;">[</span>times<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> times
+       <span style="color: #2d9574;">(</span>partition <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span>juxt identity
+                  <span style="color: #b1951d;">(</span>comp <span style="color: #4f97d7;">(</span>partial apply -<span style="color: #4f97d7;">)</span>
+                        <span style="color: #4f97d7;">(</span>juxt last first<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #a45bad;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">keep-xf</span>
+  <span style="color: #bc6ec5;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span>
+           <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #4f97d7;">(</span>&gt; <span style="color: #a45bad;">1000</span> <span style="color: #bc6ec5;">(</span>- <span style="color: #2d9574;">(</span>peek v<span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>nth v <span style="color: #a45bad;">0</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+             v<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+I would consider the latter way more idiomatic <i>and</i> concise.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org01e4f54" class="outline-2">
+<h2 id="org01e4f54">Slightly less idiomatic</h2>
+<div class="outline-text-2" id="text-org01e4f54">
+<p>
+Do we have to get the results back as vectors? If we relax this
+requirement, we can skip over wrapping the results in the sliding
+transducer in a vector:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">sliding-array</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #2d9574;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> n <span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> step<span style="color: #2d9574;">]</span>
+   <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #67b11d;">[</span>rf<span style="color: #67b11d;">]</span>
+     <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #4f97d7;">(</span>java.util.ArrayDeque. n<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span>
+       <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span>
+         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[]</span> <span style="color: #bc6ec5;">(</span>rf<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result<span style="color: #bc6ec5;">]</span>
+          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #4f97d7;">(</span>.isEmpty a<span style="color: #4f97d7;">)</span>
+                         result
+                         <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #bc6ec5;">[</span>v <span style="color: #2d9574;">(</span>.toArray a<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">]</span>
+                           <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">clear first!</span>
+                           <span style="color: #bc6ec5;">(</span>.clear a<span style="color: #bc6ec5;">)</span>
+                           <span style="color: #bc6ec5;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result input<span style="color: #bc6ec5;">]</span>
+          <span style="color: #bc6ec5;">(</span>.add a input<span style="color: #bc6ec5;">)</span>
+          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #9cb6ad;">(</span>.size a<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+            <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #9cb6ad;">[</span>v <span style="color: #4f97d7;">(</span>.toArray a<span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">]</span>
+              <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Remove `</span><span style="color: #a45bad; background-color: #292e34;">step</span><span style="color: #2aa1ae; background-color: #292e34;">` elements instead of clear</span>
+              <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">dotimes</span> <span style="color: #4f97d7;">[</span>_ step<span style="color: #4f97d7;">]</span> <span style="color: #4f97d7;">(</span>.removeFirst a<span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span>
+              <span style="color: #9cb6ad;">(</span>rf result v<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+            result<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+Then, modify the argument to <code>keep</code> to take an array:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">array-xf</span>
+  <span style="color: #bc6ec5;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliders <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">objects</span> arr<span style="color: #b1951d;">]</span>
+           <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #4f97d7;">(</span>&gt; <span style="color: #a45bad;">1000</span> <span style="color: #bc6ec5;">(</span>- <span style="color: #2d9574;">(</span>long <span style="color: #9cb6ad;">(</span>aget arr <span style="color: #4f97d7;">(</span>unchecked-dec-int <span style="color: #bc6ec5;">(</span>alength arr<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+                            <span style="color: #2d9574;">(</span>long <span style="color: #9cb6ad;">(</span>aget arr <span style="color: #a45bad;">0</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+             arr<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+This is becoming slightly unwieldy so let's just sprinkle a little macro on top:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defmacro</span> <span style="color: #bc6ec5; font-weight: bold;">alast</span>
+  <span style="color: #bc6ec5;">[</span>arr<span style="color: #bc6ec5;">]</span>
+  `<span style="color: #bc6ec5;">(</span>aget ~arr <span style="color: #2d9574;">(</span>unchecked-dec-int <span style="color: #67b11d;">(</span>alength ~arr<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">array-xf</span>
+  <span style="color: #bc6ec5;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliders <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">objects</span> arr<span style="color: #b1951d;">]</span>
+           <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #4f97d7;">(</span>&gt; <span style="color: #a45bad;">1000</span> <span style="color: #bc6ec5;">(</span>- <span style="color: #2d9574;">(</span>long <span style="color: #9cb6ad;">(</span>alast arr<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>long <span style="color: #9cb6ad;">(</span>aget arr <span style="color: #a45bad;">0</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+             arr<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+And the results:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence array-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 30 in 6 samples of 5 calls.</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 24.417962 ms</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 425.377564 &#181;s</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 24.022441 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 24.998770 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
+</pre>
+</div>
+
+<p>
+Another 3x speedup, new 46x times faster than the original, without
+going crazy with interop, optimization or some unrolling.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgb051dde" class="outline-2">
+<h2 id="orgb051dde">But can we go faster?</h2>
+<div class="outline-text-2" id="text-orgb051dde">
+<p>
+Let us put aside our requirement for idiomatic Clojure. Let's settle on readable.
+</p>
+
+<p>
+By converting the input to an array, we can work directly with indices
+and built up the results collection. We'll also take advantage of the
+fact that linked lists are pretty fast to allocate, so build those
+instead of a vector or set:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">unrolled</span>
+  <span style="color: #bc6ec5;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">longs</span> arr<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>l <span style="color: #67b11d;">(</span>unchecked-subtract-int <span style="color: #b1951d;">(</span>alength arr<span style="color: #b1951d;">)</span> <span style="color: #a45bad;">8</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">loop</span> <span style="color: #67b11d;">[</span>idx <span style="color: #b1951d;">(</span>int <span style="color: #a45bad;">0</span><span style="color: #b1951d;">)</span> agg <span style="color: #b1951d;">()</span><span style="color: #67b11d;">]</span>
+      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #b1951d;">(</span>&lt; idx l<span style="color: #b1951d;">)</span>
+        <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">recur</span>
+         <span style="color: #4f97d7;">(</span>unchecked-inc-int idx<span style="color: #4f97d7;">)</span>
+         <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #bc6ec5;">(</span>&gt; <span style="color: #a45bad;">1000</span> <span style="color: #2d9574;">(</span>- <span style="color: #9cb6ad;">(</span>aget arr <span style="color: #4f97d7;">(</span>unchecked-add-int idx <span style="color: #a45bad;">8</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span> <span style="color: #9cb6ad;">(</span>aget arr idx<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span>
+           <span style="color: #bc6ec5;">(</span>.cons agg idx<span style="color: #bc6ec5;">)</span>
+           agg<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span>
+        agg<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #bc6ec5;">[</span>arr <span style="color: #2d9574;">(</span>long-array times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #2d9574;">(</span>unrolled arr<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 522 in 6 samples of 87 calls.</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 1.156237 ms</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 1.555163 &#181;s</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 1.154193 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 1.157862 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
+</pre>
+</div>
+
+<p>
+Another 21x speedup!
+</p>
+
+<p>
+This implementation is very different. It deals with a concrete array
+instead of a sequence abstraction, and explicitly builds up the result.
+It allocates a lot less and sequentially accesses memory.
+</p>
+
+<p>
+It's more similar to a solution in Java then Clojure, but it's pretty
+readable. It might even be more readable to programmers unfamiliar with
+Clojure.
+</p>
+
+<p>
+I feel pretty comfortable saying that Clojure is not slow. I did not
+even have to disassemble it, tweak anything, or write complicated code.
+</p>
+
+<p>
+The gains here are a result of a few actions:
+</p>
+<ul class="org-ul">
+<li>cutting down on allocation
+<ul class="org-ul">
+<li>partition -&gt; sliding</li>
+<li>lazy sequences -&gt; transducers</li>
+<li>map / filter -&gt; keep</li>
+</ul></li>
+<li>cutting down on iteration
+<ul class="org-ul">
+<li>last -&gt; peek</li>
+<li>juxt / apply -&gt; direct function calls</li>
+</ul></li>
+<li>Using primitives instead of collections
+<ul class="org-ul">
+<li>Vectors -&gt; arrays make for faster access</li>
+<li>Working directly with arrays and contiguous memory access</li>
+</ul></li>
+</ul>
+
+
+<p>
+Happy hacking
+</p>
+</div>
+</div>
