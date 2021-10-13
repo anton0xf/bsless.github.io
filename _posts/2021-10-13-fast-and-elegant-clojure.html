@@ -612,6 +612,39 @@ The gains here are a result of a few actions:
 <li>Working directly with arrays and contiguous memory access</li>
 </ul></li>
 </ul>
+</div>
+</div>
+
+
+<div id="outline-container-orgc7e8ef6" class="outline-2">
+<h2 id="orgc7e8ef6">Should you try this at home?</h2>
+<div class="outline-text-2" id="text-orgc7e8ef6">
+<blockquote>
+<p>
+premature optimization is the root of all evil. Yet we should not pass
+up our opportunities in that critical 3% &#x2013; Donald Knuth
+</p>
+</blockquote>
+
+<p>
+The answer as always is "it depends"; Things like using <code>nth</code>, <code>peek</code>
+and <code>pop</code> instead of <code>first</code> and <code>last</code>, using transducers instead of
+lazy sequences, and familiarity with Clojure's core (e.g. <code>keep</code>) are
+good and will probably produce more idiomatic code. They can be embraced
+as habits.
+</p>
+
+<p>
+On the other hand, things like writing your own transducers, especially
+ones built with Java interop, and working directly with arrays should be
+reserved for special circumstances.
+</p>
+
+<p>
+Do profile your code first, understand the problems and use cases,
+<i>then</i> optimize to your heart's content, secure in the knowledge that if
+you need to, Clojure can probably get there.
+</p>
 
 
 <p>

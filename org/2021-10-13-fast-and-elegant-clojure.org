@@ -465,4 +465,26 @@ The gains here are a result of a few actions:
   - Working directly with arrays and contiguous memory access
 
 
+* Should you try this at home?
+
+#+begin_quote
+premature optimization is the root of all evil. Yet we should not pass
+up our opportunities in that critical 3% -- Donald Knuth
+#+end_quote
+
+The answer as always is "it depends"; Things like using ~nth~, ~peek~
+and ~pop~ instead of ~first~ and ~last~, using transducers instead of
+lazy sequences, and familiarity with Clojure's core (e.g. ~keep~) are
+good and will probably produce more idiomatic code. They can be embraced
+as habits.
+
+On the other hand, things like writing your own transducers, especially
+ones built with Java interop, and working directly with arrays should be
+reserved for special circumstances.
+
+Do profile your code first, understand the problems and use cases,
+/then/ optimize to your heart's content, secure in the knowledge that if
+you need to, Clojure can probably get there.
+
+
 Happy hacking
