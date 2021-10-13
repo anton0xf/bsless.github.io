@@ -58,13 +58,13 @@ Let us examine these assumptions by looking at the original implementation:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">smt-8</span> <span style="color: #bc6ec5;">[</span>times<span style="color: #bc6ec5;">]</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> times
-       <span style="color: #2d9574;">(</span>partition <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">smt-8</span> <span style="color: #6c3163;">[</span>times<span style="color: #6c3163;">]</span>
+  <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">-&gt;&gt;</span> times
+       <span style="color: #2d9574;">(</span>partition <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
        <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span>juxt identity
-                  <span style="color: #b1951d;">(</span>comp <span style="color: #4f97d7;">(</span>partial apply -<span style="color: #4f97d7;">)</span>
-                        <span style="color: #4f97d7;">(</span>juxt last first<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
-       <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #a45bad;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+                  <span style="color: #b1951d;">(</span>comp <span style="color: #3a81c3;">(</span>partial apply -<span style="color: #3a81c3;">)</span>
+                        <span style="color: #3a81c3;">(</span>juxt last first<span style="color: #3a81c3;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #4e3163;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 
@@ -94,9 +94,9 @@ Setting up some test data, we can get a baseline measurement:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span>require '<span style="color: #bc6ec5;">[</span>criterium.core <span style="color: #a45bad;">:as</span> cc<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span>
-<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">times-v</span> <span style="color: #bc6ec5;">(</span>into <span style="color: #2d9574;">[]</span> <span style="color: #2d9574;">(</span>take <span style="color: #a45bad;">1e6</span><span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>iterate #<span style="color: #67b11d;">(</span>+ <span style="color: #7590db;">%</span> <span style="color: #b1951d;">(</span>rand-int <span style="color: #a45bad;">1000</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span> <span style="color: #a45bad;">0</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>smt-8 times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span>require '<span style="color: #6c3163;">[</span>criterium.core <span style="color: #4e3163;">:as</span> cc<span style="color: #6c3163;">]</span><span style="color: #3a81c3;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">times-v</span> <span style="color: #6c3163;">(</span>into <span style="color: #2d9574;">[]</span> <span style="color: #2d9574;">(</span>take <span style="color: #4e3163;">1e6</span><span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>iterate #<span style="color: #67b11d;">(</span>+ <span style="color: #715ab1;">%</span> <span style="color: #b1951d;">(</span>rand-int <span style="color: #4e3163;">1000</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span> <span style="color: #4e3163;">0</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>smt-8 times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 <pre class="example">
@@ -134,17 +134,17 @@ for a series of sequence transformations:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> xs
-     <span style="color: #bc6ec5;">(</span>map f<span style="color: #bc6ec5;">)</span>
-     <span style="color: #bc6ec5;">(</span>filter g<span style="color: #bc6ec5;">)</span>
-     <span style="color: #bc6ec5;">(</span>map h<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">is equivalent to =&gt;</span>
-<span style="color: #4f97d7;">(</span>sequence
- <span style="color: #bc6ec5;">(</span>comp
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">-&gt;&gt;</span> xs
+     <span style="color: #6c3163;">(</span>map f<span style="color: #6c3163;">)</span>
+     <span style="color: #6c3163;">(</span>filter g<span style="color: #6c3163;">)</span>
+     <span style="color: #6c3163;">(</span>map h<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">is equivalent to =&gt;</span>
+<span style="color: #3a81c3;">(</span>sequence
+ <span style="color: #6c3163;">(</span>comp
   <span style="color: #2d9574;">(</span>map f<span style="color: #2d9574;">)</span>
   <span style="color: #2d9574;">(</span>filter g<span style="color: #2d9574;">)</span>
-  <span style="color: #2d9574;">(</span>map h<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span>
- xs<span style="color: #4f97d7;">)</span>
+  <span style="color: #2d9574;">(</span>map h<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span>
+ xs<span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 
@@ -164,27 +164,27 @@ arity. Let's look at how it's implemented:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">partition-all</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #2d9574;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> n<span style="color: #2d9574;">]</span>
-   <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #67b11d;">[</span>rf<span style="color: #67b11d;">]</span>
-     <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #4f97d7;">(</span>java.util.ArrayList. n<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span>
-       <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span>
-         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[]</span> <span style="color: #bc6ec5;">(</span>rf<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result<span style="color: #bc6ec5;">]</span>
-          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #4f97d7;">(</span>.isEmpty a<span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">partition-all</span>
+  <span style="color: #6c3163;">(</span><span style="color: #2d9574;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">long</span> n<span style="color: #2d9574;">]</span>
+   <span style="color: #2d9574;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #67b11d;">[</span>rf<span style="color: #67b11d;">]</span>
+     <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #3a81c3;">(</span>java.util.ArrayList. n<span style="color: #3a81c3;">)</span><span style="color: #b1951d;">]</span>
+       <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[]</span> <span style="color: #6c3163;">(</span>rf<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result<span style="color: #6c3163;">]</span>
+          <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #887070;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #3a81c3;">(</span>.isEmpty a<span style="color: #3a81c3;">)</span>
                          result
-                         <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #bc6ec5;">[</span>v <span style="color: #2d9574;">(</span>vec <span style="color: #67b11d;">(</span>.toArray a<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">]</span>
-                           <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">clear first!</span>
-                           <span style="color: #bc6ec5;">(</span>.clear a<span style="color: #bc6ec5;">)</span>
-                           <span style="color: #bc6ec5;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">]</span>
-            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result input<span style="color: #bc6ec5;">]</span>
-          <span style="color: #bc6ec5;">(</span>.add a input<span style="color: #bc6ec5;">)</span>
-          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #9cb6ad;">(</span>.size a<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
-            <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #9cb6ad;">[</span>v <span style="color: #4f97d7;">(</span>vec <span style="color: #bc6ec5;">(</span>.toArray a<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">]</span>
-              <span style="color: #9cb6ad;">(</span>.clear a<span style="color: #9cb6ad;">)</span>
-              <span style="color: #9cb6ad;">(</span>rf result v<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
-            result<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+                         <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #6c3163;">[</span>v <span style="color: #2d9574;">(</span>vec <span style="color: #67b11d;">(</span>.toArray a<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">]</span>
+                           <span style="color: #2aa1ae; background-color: #ecf3ec;">;;</span><span style="color: #2aa1ae; background-color: #ecf3ec;">clear first!</span>
+                           <span style="color: #6c3163;">(</span>.clear a<span style="color: #6c3163;">)</span>
+                           <span style="color: #6c3163;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result input<span style="color: #6c3163;">]</span>
+          <span style="color: #6c3163;">(</span>.add a input<span style="color: #6c3163;">)</span>
+          <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #887070;">(</span>.size a<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
+            <span style="color: #2d9574;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #887070;">[</span>v <span style="color: #3a81c3;">(</span>vec <span style="color: #6c3163;">(</span>.toArray a<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">]</span>
+              <span style="color: #887070;">(</span>.clear a<span style="color: #887070;">)</span>
+              <span style="color: #887070;">(</span>rf result v<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
+            result<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 
@@ -194,30 +194,30 @@ ArrayList with a Queue!
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">sliding</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #2d9574;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> n<span style="color: #2d9574;">]</span>
-   <span style="color: #2d9574;">(</span>sliding n <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #2d9574;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> n <span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> step<span style="color: #2d9574;">]</span>
-   <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #67b11d;">[</span>rf<span style="color: #67b11d;">]</span>
-     <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #4f97d7;">(</span>java.util.ArrayDeque. n<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Queue here</span>
-       <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span>
-         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[]</span> <span style="color: #bc6ec5;">(</span>rf<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result<span style="color: #bc6ec5;">]</span>
-          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #4f97d7;">(</span>.isEmpty a<span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">sliding</span>
+  <span style="color: #6c3163;">(</span><span style="color: #2d9574;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">long</span> n<span style="color: #2d9574;">]</span>
+   <span style="color: #2d9574;">(</span>sliding n <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span>
+  <span style="color: #6c3163;">(</span><span style="color: #2d9574;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">long</span> n <span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">long</span> step<span style="color: #2d9574;">]</span>
+   <span style="color: #2d9574;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #67b11d;">[</span>rf<span style="color: #67b11d;">]</span>
+     <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #3a81c3;">(</span>java.util.ArrayDeque. n<span style="color: #3a81c3;">)</span><span style="color: #b1951d;">]</span> <span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Queue here</span>
+       <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[]</span> <span style="color: #6c3163;">(</span>rf<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result<span style="color: #6c3163;">]</span>
+          <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #887070;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #3a81c3;">(</span>.isEmpty a<span style="color: #3a81c3;">)</span>
                          result
-                         <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #bc6ec5;">[</span>v <span style="color: #2d9574;">(</span>vec <span style="color: #67b11d;">(</span>.toArray a<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">]</span>
-                           <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">clear first!</span>
-                           <span style="color: #bc6ec5;">(</span>.clear a<span style="color: #bc6ec5;">)</span>
-                           <span style="color: #bc6ec5;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">]</span>
-            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result input<span style="color: #bc6ec5;">]</span>
-          <span style="color: #bc6ec5;">(</span>.add a input<span style="color: #bc6ec5;">)</span>
-          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #9cb6ad;">(</span>.size a<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
-            <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #9cb6ad;">[</span>v <span style="color: #4f97d7;">(</span>vec <span style="color: #bc6ec5;">(</span>.toArray a<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">]</span>
-              <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Remove `</span><span style="color: #a45bad; background-color: #292e34;">step</span><span style="color: #2aa1ae; background-color: #292e34;">` elements instead of clear</span>
-              <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">dotimes</span> <span style="color: #4f97d7;">[</span>_ step<span style="color: #4f97d7;">]</span> <span style="color: #4f97d7;">(</span>.removeFirst a<span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span>
-              <span style="color: #9cb6ad;">(</span>rf result v<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
-            result<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+                         <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #6c3163;">[</span>v <span style="color: #2d9574;">(</span>vec <span style="color: #67b11d;">(</span>.toArray a<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">]</span>
+                           <span style="color: #2aa1ae; background-color: #ecf3ec;">;;</span><span style="color: #2aa1ae; background-color: #ecf3ec;">clear first!</span>
+                           <span style="color: #6c3163;">(</span>.clear a<span style="color: #6c3163;">)</span>
+                           <span style="color: #6c3163;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result input<span style="color: #6c3163;">]</span>
+          <span style="color: #6c3163;">(</span>.add a input<span style="color: #6c3163;">)</span>
+          <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #887070;">(</span>.size a<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
+            <span style="color: #2d9574;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #887070;">[</span>v <span style="color: #3a81c3;">(</span>vec <span style="color: #6c3163;">(</span>.toArray a<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">]</span>
+              <span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Remove `</span><span style="color: #4e3163; background-color: #ecf3ec;">step</span><span style="color: #2aa1ae; background-color: #ecf3ec;">` elements instead of clear</span>
+              <span style="color: #887070;">(</span><span style="color: #3a81c3; font-weight: bold;">dotimes</span> <span style="color: #3a81c3;">[</span>_ step<span style="color: #3a81c3;">]</span> <span style="color: #3a81c3;">(</span>.removeFirst a<span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span>
+              <span style="color: #887070;">(</span>rf result v<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
+            result<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 
@@ -226,7 +226,7 @@ Let's convinces ourselves it works:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span>sequence <span style="color: #bc6ec5;">(</span>sliding <span style="color: #a45bad;">3</span> <span style="color: #a45bad;">1</span><span style="color: #bc6ec5;">)</span> '<span style="color: #bc6ec5;">[</span>a b c d e<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span><span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">=&gt; ([a b c] [b c d] [c d e] [d e])</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span>sequence <span style="color: #6c3163;">(</span>sliding <span style="color: #4e3163;">3</span> <span style="color: #4e3163;">1</span><span style="color: #6c3163;">)</span> '<span style="color: #6c3163;">[</span>a b c d e<span style="color: #6c3163;">]</span><span style="color: #3a81c3;">)</span><span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">=&gt; ([a b c] [b c d] [c d e] [d e])</span>
 </pre>
 </div>
 
@@ -235,15 +235,15 @@ Now we can define an equivalent transducer:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">baseline-xf</span>
-  <span style="color: #bc6ec5;">(</span>comp
-   <span style="color: #2d9574;">(</span>sliding <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">baseline-xf</span>
+  <span style="color: #6c3163;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
    <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span>juxt identity
-              <span style="color: #b1951d;">(</span>comp <span style="color: #4f97d7;">(</span>partial apply -<span style="color: #4f97d7;">)</span>
-                    <span style="color: #4f97d7;">(</span>juxt last first<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
-   <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #a45bad;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+              <span style="color: #b1951d;">(</span>comp <span style="color: #3a81c3;">(</span>partial apply -<span style="color: #3a81c3;">)</span>
+                    <span style="color: #3a81c3;">(</span>juxt last first<span style="color: #3a81c3;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #4e3163;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence baseline-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence baseline-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 <pre class="example">
@@ -270,13 +270,13 @@ find out:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">decomposed-xf</span>
-  <span style="color: #bc6ec5;">(</span>comp
-   <span style="color: #2d9574;">(</span>sliding <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
-   <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span> <span style="color: #b1951d;">[</span>v <span style="color: #4f97d7;">(</span>- <span style="color: #bc6ec5;">(</span>last v<span style="color: #bc6ec5;">)</span> <span style="color: #bc6ec5;">(</span>first v<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
-   <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #4f97d7;">[</span>_ t<span style="color: #4f97d7;">]</span><span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #a45bad;">1000</span> t<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">decomposed-xf</span>
+  <span style="color: #6c3163;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span> <span style="color: #b1951d;">[</span>v <span style="color: #3a81c3;">(</span>- <span style="color: #6c3163;">(</span>last v<span style="color: #6c3163;">)</span> <span style="color: #6c3163;">(</span>first v<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #3a81c3;">[</span>_ t<span style="color: #3a81c3;">]</span><span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #4e3163;">1000</span> t<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence decomposed-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence decomposed-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 <pre class="example">
@@ -317,13 +317,13 @@ more efficient than, last. If the collection is empty, returns nil.
 </blockquote>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">vector-xf</span>
-  <span style="color: #bc6ec5;">(</span>comp
-   <span style="color: #2d9574;">(</span>sliding <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
-   <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span> <span style="color: #b1951d;">[</span>v <span style="color: #4f97d7;">(</span>- <span style="color: #bc6ec5;">(</span>peek v<span style="color: #bc6ec5;">)</span> <span style="color: #bc6ec5;">(</span>nth v <span style="color: #a45bad;">0</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
-   <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #4f97d7;">[</span>_ t<span style="color: #4f97d7;">]</span><span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #a45bad;">1000</span> t<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">vector-xf</span>
+  <span style="color: #6c3163;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span> <span style="color: #b1951d;">[</span>v <span style="color: #3a81c3;">(</span>- <span style="color: #6c3163;">(</span>peek v<span style="color: #6c3163;">)</span> <span style="color: #6c3163;">(</span>nth v <span style="color: #4e3163;">0</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #3a81c3;">[</span>_ t<span style="color: #3a81c3;">]</span><span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #4e3163;">1000</span> t<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence vector-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence vector-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 <pre class="example">
@@ -366,14 +366,14 @@ difference calculation and not allocate another vector:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">keep-xf</span>
-  <span style="color: #bc6ec5;">(</span>comp
-   <span style="color: #2d9574;">(</span>sliding <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
-   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span>
-           <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #4f97d7;">(</span>&gt; <span style="color: #a45bad;">1000</span> <span style="color: #bc6ec5;">(</span>- <span style="color: #2d9574;">(</span>peek v<span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>nth v <span style="color: #a45bad;">0</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-             v<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">keep-xf</span>
+  <span style="color: #6c3163;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span>
+           <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">when</span> <span style="color: #3a81c3;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #6c3163;">(</span>- <span style="color: #2d9574;">(</span>peek v<span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>nth v <span style="color: #4e3163;">0</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+             v<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence keep-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence keep-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 <pre class="example">
@@ -415,20 +415,20 @@ Compare the initial snippet with the final version:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">smt-8</span> <span style="color: #bc6ec5;">[</span>times<span style="color: #bc6ec5;">]</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> times
-       <span style="color: #2d9574;">(</span>partition <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">smt-8</span> <span style="color: #6c3163;">[</span>times<span style="color: #6c3163;">]</span>
+  <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">-&gt;&gt;</span> times
+       <span style="color: #2d9574;">(</span>partition <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
        <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span>juxt identity
-                  <span style="color: #b1951d;">(</span>comp <span style="color: #4f97d7;">(</span>partial apply -<span style="color: #4f97d7;">)</span>
-                        <span style="color: #4f97d7;">(</span>juxt last first<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
-       <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #a45bad;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+                  <span style="color: #b1951d;">(</span>comp <span style="color: #3a81c3;">(</span>partial apply -<span style="color: #3a81c3;">)</span>
+                        <span style="color: #3a81c3;">(</span>juxt last first<span style="color: #3a81c3;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #4e3163;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">keep-xf</span>
-  <span style="color: #bc6ec5;">(</span>comp
-   <span style="color: #2d9574;">(</span>sliding <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
-   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span>
-           <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #4f97d7;">(</span>&gt; <span style="color: #a45bad;">1000</span> <span style="color: #bc6ec5;">(</span>- <span style="color: #2d9574;">(</span>peek v<span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>nth v <span style="color: #a45bad;">0</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-             v<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">keep-xf</span>
+  <span style="color: #6c3163;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span>
+           <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">when</span> <span style="color: #3a81c3;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #6c3163;">(</span>- <span style="color: #2d9574;">(</span>peek v<span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>nth v <span style="color: #4e3163;">0</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+             v<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 
@@ -447,29 +447,30 @@ requirement, we can skip over wrapping the results in the sliding
 transducer in a vector:
 </p>
 
+
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">sliding-array</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #2d9574;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> n <span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">long</span> step<span style="color: #2d9574;">]</span>
-   <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #67b11d;">[</span>rf<span style="color: #67b11d;">]</span>
-     <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #4f97d7;">(</span>java.util.ArrayDeque. n<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span>
-       <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span>
-         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[]</span> <span style="color: #bc6ec5;">(</span>rf<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result<span style="color: #bc6ec5;">]</span>
-          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #4f97d7;">(</span>.isEmpty a<span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">sliding-array</span>
+  <span style="color: #6c3163;">(</span><span style="color: #2d9574;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">long</span> n <span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">long</span> step<span style="color: #2d9574;">]</span>
+   <span style="color: #2d9574;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #67b11d;">[</span>rf<span style="color: #67b11d;">]</span>
+     <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #3a81c3;">(</span>java.util.ArrayDeque. n<span style="color: #3a81c3;">)</span><span style="color: #b1951d;">]</span>
+       <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[]</span> <span style="color: #6c3163;">(</span>rf<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result<span style="color: #6c3163;">]</span>
+          <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #887070;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #3a81c3;">(</span>.isEmpty a<span style="color: #3a81c3;">)</span>
                          result
-                         <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #bc6ec5;">[</span>v <span style="color: #2d9574;">(</span>.toArray a<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">]</span>
-                           <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">clear first!</span>
-                           <span style="color: #bc6ec5;">(</span>.clear a<span style="color: #bc6ec5;">)</span>
-                           <span style="color: #bc6ec5;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">]</span>
-            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-         <span style="color: #4f97d7;">(</span><span style="color: #bc6ec5;">[</span>result input<span style="color: #bc6ec5;">]</span>
-          <span style="color: #bc6ec5;">(</span>.add a input<span style="color: #bc6ec5;">)</span>
-          <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #9cb6ad;">(</span>.size a<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
-            <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #9cb6ad;">[</span>v <span style="color: #4f97d7;">(</span>.toArray a<span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">]</span>
-              <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Remove `</span><span style="color: #a45bad; background-color: #292e34;">step</span><span style="color: #2aa1ae; background-color: #292e34;">` elements instead of clear</span>
-              <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">dotimes</span> <span style="color: #4f97d7;">[</span>_ step<span style="color: #4f97d7;">]</span> <span style="color: #4f97d7;">(</span>.removeFirst a<span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span>
-              <span style="color: #9cb6ad;">(</span>rf result v<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
-            result<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+                         <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #6c3163;">[</span>v <span style="color: #2d9574;">(</span>.toArray a<span style="color: #2d9574;">)</span><span style="color: #6c3163;">]</span>
+                           <span style="color: #2aa1ae; background-color: #ecf3ec;">;;</span><span style="color: #2aa1ae; background-color: #ecf3ec;">clear first!</span>
+                           <span style="color: #6c3163;">(</span>.clear a<span style="color: #6c3163;">)</span>
+                           <span style="color: #6c3163;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result input<span style="color: #6c3163;">]</span>
+          <span style="color: #6c3163;">(</span>.add a input<span style="color: #6c3163;">)</span>
+          <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #887070;">(</span>.size a<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
+            <span style="color: #2d9574;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #887070;">[</span>v <span style="color: #3a81c3;">(</span>.toArray a<span style="color: #3a81c3;">)</span><span style="color: #887070;">]</span>
+              <span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Remove `</span><span style="color: #4e3163; background-color: #ecf3ec;">step</span><span style="color: #2aa1ae; background-color: #ecf3ec;">` elements instead of clear</span>
+              <span style="color: #887070;">(</span><span style="color: #3a81c3; font-weight: bold;">dotimes</span> <span style="color: #3a81c3;">[</span>_ step<span style="color: #3a81c3;">]</span> <span style="color: #3a81c3;">(</span>.removeFirst a<span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span>
+              <span style="color: #887070;">(</span>rf result v<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
+            result<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 
@@ -478,13 +479,13 @@ Then, modify the argument to <code>keep</code> to take an array:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">array-xf</span>
-  <span style="color: #bc6ec5;">(</span>comp
-   <span style="color: #2d9574;">(</span>sliders <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
-   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">objects</span> arr<span style="color: #b1951d;">]</span>
-           <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #4f97d7;">(</span>&gt; <span style="color: #a45bad;">1000</span> <span style="color: #bc6ec5;">(</span>- <span style="color: #2d9574;">(</span>long <span style="color: #9cb6ad;">(</span>aget arr <span style="color: #4f97d7;">(</span>unchecked-dec-int <span style="color: #bc6ec5;">(</span>alength arr<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
-                            <span style="color: #2d9574;">(</span>long <span style="color: #9cb6ad;">(</span>aget arr <span style="color: #a45bad;">0</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-             arr<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">array-xf</span>
+  <span style="color: #6c3163;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliders <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">objects</span> arr<span style="color: #b1951d;">]</span>
+           <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">when</span> <span style="color: #3a81c3;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #6c3163;">(</span>- <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>aget arr <span style="color: #3a81c3;">(</span>unchecked-dec-int <span style="color: #6c3163;">(</span>alength arr<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
+                            <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>aget arr <span style="color: #4e3163;">0</span><span style="color: #887070;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+             arr<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 
@@ -493,16 +494,16 @@ This is becoming slightly unwieldy so let's just sprinkle a little macro on top:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defmacro</span> <span style="color: #bc6ec5; font-weight: bold;">alast</span>
-  <span style="color: #bc6ec5;">[</span>arr<span style="color: #bc6ec5;">]</span>
-  `<span style="color: #bc6ec5;">(</span>aget ~arr <span style="color: #2d9574;">(</span>unchecked-dec-int <span style="color: #67b11d;">(</span>alength ~arr<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defmacro</span> <span style="color: #6c3163; font-weight: bold;">alast</span>
+  <span style="color: #6c3163;">[</span>arr<span style="color: #6c3163;">]</span>
+  `<span style="color: #6c3163;">(</span>aget ~arr <span style="color: #2d9574;">(</span>unchecked-dec-int <span style="color: #67b11d;">(</span>alength ~arr<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">array-xf</span>
-  <span style="color: #bc6ec5;">(</span>comp
-   <span style="color: #2d9574;">(</span>sliders <span style="color: #a45bad;">8</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span>
-   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">objects</span> arr<span style="color: #b1951d;">]</span>
-           <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #4f97d7;">(</span>&gt; <span style="color: #a45bad;">1000</span> <span style="color: #bc6ec5;">(</span>- <span style="color: #2d9574;">(</span>long <span style="color: #9cb6ad;">(</span>alast arr<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>long <span style="color: #9cb6ad;">(</span>aget arr <span style="color: #a45bad;">0</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-             arr<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">array-xf</span>
+  <span style="color: #6c3163;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliders <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">objects</span> arr<span style="color: #b1951d;">]</span>
+           <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">when</span> <span style="color: #3a81c3;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #6c3163;">(</span>- <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>alast arr<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>aget arr <span style="color: #4e3163;">0</span><span style="color: #887070;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+             arr<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 
@@ -511,7 +512,7 @@ And the results:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence array-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence array-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 <pre class="example">
@@ -545,20 +546,20 @@ instead of a vector or set:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">unrolled</span>
-  <span style="color: #bc6ec5;">[</span><span style="color: #b2b2b2; background-color: #292b2e;">^</span><span style="color: #ce537a; font-weight: bold;">longs</span> arr<span style="color: #bc6ec5;">]</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>l <span style="color: #67b11d;">(</span>unchecked-subtract-int <span style="color: #b1951d;">(</span>alength arr<span style="color: #b1951d;">)</span> <span style="color: #a45bad;">8</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
-    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">loop</span> <span style="color: #67b11d;">[</span>idx <span style="color: #b1951d;">(</span>int <span style="color: #a45bad;">0</span><span style="color: #b1951d;">)</span> agg <span style="color: #b1951d;">()</span><span style="color: #67b11d;">]</span>
-      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #b1951d;">(</span>&lt; idx l<span style="color: #b1951d;">)</span>
-        <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">recur</span>
-         <span style="color: #4f97d7;">(</span>unchecked-inc-int idx<span style="color: #4f97d7;">)</span>
-         <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #bc6ec5;">(</span>&gt; <span style="color: #a45bad;">1000</span> <span style="color: #2d9574;">(</span>- <span style="color: #9cb6ad;">(</span>aget arr <span style="color: #4f97d7;">(</span>unchecked-add-int idx <span style="color: #a45bad;">8</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span> <span style="color: #9cb6ad;">(</span>aget arr idx<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span>
-           <span style="color: #bc6ec5;">(</span>.cons agg idx<span style="color: #bc6ec5;">)</span>
-           agg<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span>
-        agg<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">unrolled</span>
+  <span style="color: #6c3163;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">longs</span> arr<span style="color: #6c3163;">]</span>
+  <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>l <span style="color: #67b11d;">(</span>unchecked-subtract-int <span style="color: #b1951d;">(</span>alength arr<span style="color: #b1951d;">)</span> <span style="color: #4e3163;">8</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #3a81c3; font-weight: bold;">loop</span> <span style="color: #67b11d;">[</span>idx <span style="color: #b1951d;">(</span>int <span style="color: #4e3163;">0</span><span style="color: #b1951d;">)</span> agg <span style="color: #b1951d;">()</span><span style="color: #67b11d;">]</span>
+      <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #b1951d;">(</span>&lt; idx l<span style="color: #b1951d;">)</span>
+        <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">recur</span>
+         <span style="color: #3a81c3;">(</span>unchecked-inc-int idx<span style="color: #3a81c3;">)</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #6c3163;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #2d9574;">(</span>- <span style="color: #887070;">(</span>aget arr <span style="color: #3a81c3;">(</span>unchecked-add-int idx <span style="color: #4e3163;">8</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span> <span style="color: #887070;">(</span>aget arr idx<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span>
+           <span style="color: #6c3163;">(</span>.cons agg idx<span style="color: #6c3163;">)</span>
+           agg<span style="color: #3a81c3;">)</span><span style="color: #b1951d;">)</span>
+        agg<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #bc6ec5;">[</span>arr <span style="color: #2d9574;">(</span>long-array times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">]</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #2d9574;">(</span>unrolled arr<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #6c3163;">[</span>arr <span style="color: #2d9574;">(</span>long-array times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">]</span>
+  <span style="color: #6c3163;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #2d9574;">(</span>unrolled arr<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 <pre class="example">
