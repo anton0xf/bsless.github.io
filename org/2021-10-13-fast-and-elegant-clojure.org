@@ -68,6 +68,8 @@ Setting up some test data, we can get a baseline measurement:
   (require '[criterium.core :as cc])
   (def times-v (into [] (take 1e6) (iterate #(+ % (rand-int 1000)) 0)))
   (cc/quick-bench (doall (smt-8 times-v)))
+#+end_src
+#+begin_src 
   ;; Evaluation count : 6 in 6 samples of 1 calls.
   ;;              Execution time mean : 1.134559 sec
   ;;     Execution time std-deviation : 29.296718 ms
@@ -185,6 +187,8 @@ Now we can define an equivalent transducer:
      (filter (comp (partial > 1000) second))))
 
   (cc/quick-bench (doall (sequence baseline-xf times-v)))
+#+end_src
+#+begin_src 
   ;; Evaluation count : 6 in 6 samples of 1 calls.
   ;;              Execution time mean : 462.921956 ms
   ;;     Execution time std-deviation : 20.213288 ms
@@ -208,13 +212,14 @@ Now we can define an equivalent transducer:
    (filter (fn [[_ t]] (> 1000 t)))))
 
 (cc/quick-bench (doall (sequence decomposed-xf times-v)))
+#+end_src
+#+begin_src 
 ;;                 Evaluation count : 6 in 6 samples of 1 calls.
 ;;              Execution time mean : 351.568027 ms
 ;;     Execution time std-deviation : 759.033184 µs
 ;;    Execution time lower quantile : 350.854161 ms ( 2.5%)
 ;;    Execution time upper quantile : 352.427674 ms (97.5%)
 ;;                    Overhead used : 2.079753 ns
-
 #+end_src
 
 25% faster? How come? The culprit is mainly ~apply~. ~juxt~ returns a
@@ -242,6 +247,8 @@ time. Iteration has its price.
    (filter (fn [[_ t]] (> 1000 t)))))
 
 (cc/quick-bench (doall (sequence vector-xf times-v)))
+#+end_src
+#+begin_src 
 ;; Evaluation count : 12 in 6 samples of 2 calls.
 ;;              Execution time mean : 86.004857 ms
 ;;     Execution time std-deviation : 87.076601 µs
@@ -278,6 +285,8 @@ difference calculation and not allocate another vector:
              v)))))
 
 (cc/quick-bench (doall (sequence keep-xf times-v)))
+#+end_src
+#+begin_src
 ;; Evaluation count : 12 in 6 samples of 2 calls.
 ;;              Execution time mean : 75.370382 ms
 ;;     Execution time std-deviation : 351.859789 µs
@@ -383,6 +392,8 @@ And the results:
 
 #+begin_src clojure
 (cc/quick-bench (doall (sequence array-xf times-v)))
+#+end_src
+#+begin_src 
 ;; Evaluation count : 30 in 6 samples of 5 calls.
 ;;              Execution time mean : 24.417962 ms
 ;;     Execution time std-deviation : 425.377564 µs
@@ -418,7 +429,8 @@ instead of a vector or set:
 
   (let [arr (long-array times-v)]
     (cc/quick-bench (unrolled arr)))
-
+#+end_src
+#+begin_src 
   ;; Evaluation count : 522 in 6 samples of 87 calls.
   ;;              Execution time mean : 1.156237 ms
   ;;     Execution time std-deviation : 1.555163 µs

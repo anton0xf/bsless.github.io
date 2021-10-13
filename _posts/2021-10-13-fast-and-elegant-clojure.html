@@ -97,14 +97,16 @@ Setting up some test data, we can get a baseline measurement:
 <pre class="src src-clojure"><span style="color: #4f97d7;">(</span>require '<span style="color: #bc6ec5;">[</span>criterium.core <span style="color: #a45bad;">:as</span> cc<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span>
 <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">times-v</span> <span style="color: #bc6ec5;">(</span>into <span style="color: #2d9574;">[]</span> <span style="color: #2d9574;">(</span>take <span style="color: #a45bad;">1e6</span><span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>iterate #<span style="color: #67b11d;">(</span>+ <span style="color: #7590db;">%</span> <span style="color: #b1951d;">(</span>rand-int <span style="color: #a45bad;">1000</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span> <span style="color: #a45bad;">0</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
 <span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>smt-8 times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 6 in 6 samples of 1 calls.</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 1.134559 sec</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 29.296718 ms</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 1.116004 sec ( 2.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 1.182402 sec (97.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
 </pre>
 </div>
+<pre class="example">
+;; Evaluation count : 6 in 6 samples of 1 calls.
+;;              Execution time mean : 1.134559 sec
+;;     Execution time std-deviation : 29.296718 ms
+;;    Execution time lower quantile : 1.116004 sec ( 2.5%)
+;;    Execution time upper quantile : 1.182402 sec (97.5%)
+;;                    Overhead used : 2.079753 ns
+</pre>
 
 <p>
 It's important to note an initial oversight by the author, who
@@ -242,14 +244,16 @@ Now we can define an equivalent transducer:
    <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #a45bad;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
 
 <span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence baseline-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 6 in 6 samples of 1 calls.</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 462.921956 ms</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 20.213288 ms</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 453.931650 ms ( 2.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 497.963799 ms (97.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
 </pre>
 </div>
+<pre class="example">
+;; Evaluation count : 6 in 6 samples of 1 calls.
+;;              Execution time mean : 462.921956 ms
+;;     Execution time std-deviation : 20.213288 ms
+;;    Execution time lower quantile : 453.931650 ms ( 2.5%)
+;;    Execution time upper quantile : 497.963799 ms (97.5%)
+;;                    Overhead used : 2.079753 ns
+</pre>
 
 <p>
 And we're already ~2.5x faster
@@ -273,15 +277,16 @@ find out:
    <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #4f97d7;">[</span>_ t<span style="color: #4f97d7;">]</span><span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #a45bad;">1000</span> t<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
 
 <span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence decomposed-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;                 </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 6 in 6 samples of 1 calls.</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 351.568027 ms</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 759.033184 &#181;s</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 350.854161 ms ( 2.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 352.427674 ms (97.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
-
 </pre>
 </div>
+<pre class="example">
+;;                 Evaluation count : 6 in 6 samples of 1 calls.
+;;              Execution time mean : 351.568027 ms
+;;     Execution time std-deviation : 759.033184 µs
+;;    Execution time lower quantile : 350.854161 ms ( 2.5%)
+;;    Execution time upper quantile : 352.427674 ms (97.5%)
+;;                    Overhead used : 2.079753 ns
+</pre>
 
 <p>
 25% faster? How come? The culprit is mainly <code>apply</code>. <code>juxt</code> returns a
@@ -319,14 +324,16 @@ more efficient than, last. If the collection is empty, returns nil.
    <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #4f97d7;">[</span>_ t<span style="color: #4f97d7;">]</span><span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #a45bad;">1000</span> t<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
 
 <span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence vector-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 12 in 6 samples of 2 calls.</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 86.004857 ms</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 87.076601 &#181;s</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 85.837271 ms ( 2.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 86.062956 ms (97.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
 </pre>
 </div>
+<pre class="example">
+;; Evaluation count : 12 in 6 samples of 2 calls.
+;;              Execution time mean : 86.004857 ms
+;;     Execution time std-deviation : 87.076601 µs
+;;    Execution time lower quantile : 85.837271 ms ( 2.5%)
+;;    Execution time upper quantile : 86.062956 ms (97.5%)
+;;                    Overhead used : 2.079753 ns
+</pre>
 
 <p>
 Now we're beginning to see some dramatic improvements. It is mostly due
@@ -367,14 +374,16 @@ difference calculation and not allocate another vector:
              v<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
 
 <span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence keep-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 12 in 6 samples of 2 calls.</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 75.370382 ms</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 351.859789 &#181;s</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 75.041801 ms ( 2.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 75.967303 ms (97.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
 </pre>
 </div>
+<pre class="example">
+;; Evaluation count : 12 in 6 samples of 2 calls.
+;;              Execution time mean : 75.370382 ms
+;;     Execution time std-deviation : 351.859789 µs
+;;    Execution time lower quantile : 75.041801 ms ( 2.5%)
+;;    Execution time upper quantile : 75.967303 ms (97.5%)
+;;                    Overhead used : 2.079753 ns
+</pre>
 
 <p>
 Even faster, but not by much. Can we go faster?
@@ -503,14 +512,16 @@ And the results:
 
 <div class="org-src-container">
 <pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence array-xf times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 30 in 6 samples of 5 calls.</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 24.417962 ms</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 425.377564 &#181;s</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 24.022441 ms ( 2.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 24.998770 ms (97.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
 </pre>
 </div>
+<pre class="example">
+;; Evaluation count : 30 in 6 samples of 5 calls.
+;;              Execution time mean : 24.417962 ms
+;;     Execution time std-deviation : 425.377564 µs
+;;    Execution time lower quantile : 24.022441 ms ( 2.5%)
+;;    Execution time upper quantile : 24.998770 ms (97.5%)
+;;                    Overhead used : 2.079753 ns
+</pre>
 
 <p>
 Another 3x speedup, new 46x times faster than the original, without
@@ -548,15 +559,16 @@ instead of a vector or set:
 
 <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #bc6ec5;">[</span>arr <span style="color: #2d9574;">(</span>long-array times-v<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">]</span>
   <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">cc</span>/quick-bench <span style="color: #2d9574;">(</span>unrolled arr<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
-
-<span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">Evaluation count : 522 in 6 samples of 87 calls.</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;              </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time mean : 1.156237 ms</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;     </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time std-deviation : 1.555163 &#181;s</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time lower quantile : 1.154193 ms ( 2.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;    </span><span style="color: #2aa1ae; background-color: #292e34;">Execution time upper quantile : 1.157862 ms (97.5%)</span>
-<span style="color: #2aa1ae; background-color: #292e34;">;;                    </span><span style="color: #2aa1ae; background-color: #292e34;">Overhead used : 2.079753 ns</span>
 </pre>
 </div>
+<pre class="example">
+;; Evaluation count : 522 in 6 samples of 87 calls.
+;;              Execution time mean : 1.156237 ms
+;;     Execution time std-deviation : 1.555163 µs
+;;    Execution time lower quantile : 1.154193 ms ( 2.5%)
+;;    Execution time upper quantile : 1.157862 ms (97.5%)
+;;                    Overhead used : 2.079753 ns
+</pre>
 
 <p>
 Another 21x speedup!
