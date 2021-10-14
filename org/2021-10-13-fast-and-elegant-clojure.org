@@ -421,7 +421,7 @@ instead of a vector or set:
   ;;                    Overhead used : 2.066166 ns
 #+end_src
 
-Another 21x speedup!
+Another 35x speedup!
 
 This implementation is very different. It deals with a concrete array
 instead of a sequence abstraction, and explicitly builds up the result.
@@ -448,6 +448,8 @@ The gains here are a result of a few actions:
 
 * Final Scores
 
+Let's take a moment to reflect on how far we've gone
+
 | step       | time (ms) | improvement |  relative |
 | baseline   |      1159 |           1 |         1 |
 | xf         |       463 |   2.5032397 | 2.5032397 |
@@ -459,6 +461,7 @@ The gains here are a result of a few actions:
 | iteration  |     0.655 |   1769.4656 | 35.114504 |
 #+TBLFM: @2$3..@>$3=@2$2/$2 
 #+TBLFM: @3$4..@>$4=@-1$2/$2
+
 
 * Should you try this at home?
 
