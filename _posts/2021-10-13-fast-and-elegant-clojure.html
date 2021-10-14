@@ -49,9 +49,8 @@ This premise hides two assumptions:
 </p>
 <ul class="org-ul">
 <li>Idiomatic Clojure is slow</li>
-<li><p>
-Optimized Clojure is non idiomatic
-</p>
+<li>Optimized Clojure is non idiomatic</li>
+</ul>
 
 <p>
 Let us examine these assumptions by looking at the original implementation:
@@ -80,8 +79,7 @@ It is, however, far from optimal, even in terms of Clojure's performance.
 <p>
 As we'll see further on, by refactoring this function our code will be
 both more idiomatic and perform better.
-</p></li>
-</ul>
+</p>
 </div>
 </div>
 </div>
@@ -97,16 +95,14 @@ Setting up some test data, we can get a baseline measurement:
 <pre class="src src-clojure"><span style="color: #3a81c3;">(</span>require '<span style="color: #6c3163;">[</span>criterium.core <span style="color: #4e3163;">:as</span> cc<span style="color: #6c3163;">]</span><span style="color: #3a81c3;">)</span>
 <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">times-v</span> <span style="color: #6c3163;">(</span>into <span style="color: #2d9574;">[]</span> <span style="color: #2d9574;">(</span>take <span style="color: #4e3163;">1e6</span><span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>iterate #<span style="color: #67b11d;">(</span>+ <span style="color: #715ab1;">%</span> <span style="color: #b1951d;">(</span>rand-int <span style="color: #4e3163;">1000</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span> <span style="color: #4e3163;">0</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 <span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>smt-8 times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Evaluation count : 6 in 6 samples of 1 calls.</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;              </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time mean : 1.159347 sec</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;     </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time std-deviation : 17.835002 ms</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time lower quantile : 1.143263 sec ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time upper quantile : 1.186615 sec (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;                    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Overhead used : 2.066166 ns</span>
 </pre>
 </div>
-<pre class="example">
-;; Evaluation count : 6 in 6 samples of 1 calls.
-;;              Execution time mean : 1.134559 sec
-;;     Execution time std-deviation : 29.296718 ms
-;;    Execution time lower quantile : 1.116004 sec ( 2.5%)
-;;    Execution time upper quantile : 1.182402 sec (97.5%)
-;;                    Overhead used : 2.079753 ns
-</pre>
 
 <p>
 It's important to note an initial oversight by the author, who
@@ -202,14 +198,7 @@ ArrayList with a Queue!
      <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #3a81c3;">(</span>java.util.ArrayDeque. n<span style="color: #3a81c3;">)</span><span style="color: #b1951d;">]</span> <span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Queue here</span>
        <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span>
          <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[]</span> <span style="color: #6c3163;">(</span>rf<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
-         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result<span style="color: #6c3163;">]</span>
-          <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #887070;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #3a81c3;">(</span>.isEmpty a<span style="color: #3a81c3;">)</span>
-                         result
-                         <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #6c3163;">[</span>v <span style="color: #2d9574;">(</span>vec <span style="color: #67b11d;">(</span>.toArray a<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">]</span>
-                           <span style="color: #2aa1ae; background-color: #ecf3ec;">;;</span><span style="color: #2aa1ae; background-color: #ecf3ec;">clear first!</span>
-                           <span style="color: #6c3163;">(</span>.clear a<span style="color: #6c3163;">)</span>
-                           <span style="color: #6c3163;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span><span style="color: #2d9574;">]</span>
-            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result<span style="color: #6c3163;">]</span> <span style="color: #6c3163;">(</span>rf result<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span> <span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">don't need leftovers</span>
          <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result input<span style="color: #6c3163;">]</span>
           <span style="color: #6c3163;">(</span>.add a input<span style="color: #6c3163;">)</span>
           <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #887070;">(</span>.size a<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
@@ -226,7 +215,7 @@ Let's convinces ourselves it works:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #3a81c3;">(</span>sequence <span style="color: #6c3163;">(</span>sliding <span style="color: #4e3163;">3</span> <span style="color: #4e3163;">1</span><span style="color: #6c3163;">)</span> '<span style="color: #6c3163;">[</span>a b c d e<span style="color: #6c3163;">]</span><span style="color: #3a81c3;">)</span><span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">=&gt; ([a b c] [b c d] [c d e] [d e])</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span>sequence <span style="color: #6c3163;">(</span>sliding <span style="color: #4e3163;">3</span> <span style="color: #4e3163;">1</span><span style="color: #6c3163;">)</span> '<span style="color: #6c3163;">[</span>a b c d e<span style="color: #6c3163;">]</span><span style="color: #3a81c3;">)</span><span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">=&gt; ([a b c] [b c d] [c d e])</span>
 </pre>
 </div>
 
@@ -244,16 +233,14 @@ Now we can define an equivalent transducer:
    <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span>comp <span style="color: #b1951d;">(</span>partial &gt; <span style="color: #4e3163;">1000</span><span style="color: #b1951d;">)</span> second<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
 <span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence baseline-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Evaluation count : 6 in 6 samples of 1 calls.</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;              </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time mean : 462.921956 ms</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;     </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time std-deviation : 20.213288 ms</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time lower quantile : 453.931650 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time upper quantile : 497.963799 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;                    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Overhead used : 2.079753 ns</span>
 </pre>
 </div>
-<pre class="example">
-;; Evaluation count : 6 in 6 samples of 1 calls.
-;;              Execution time mean : 462.921956 ms
-;;     Execution time std-deviation : 20.213288 ms
-;;    Execution time lower quantile : 453.931650 ms ( 2.5%)
-;;    Execution time upper quantile : 497.963799 ms (97.5%)
-;;                    Overhead used : 2.079753 ns
-</pre>
 
 <p>
 And we're already ~2.5x faster
@@ -276,17 +263,16 @@ find out:
    <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span> <span style="color: #b1951d;">[</span>v <span style="color: #3a81c3;">(</span>- <span style="color: #6c3163;">(</span>last v<span style="color: #6c3163;">)</span> <span style="color: #6c3163;">(</span>first v<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
    <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #3a81c3;">[</span>_ t<span style="color: #3a81c3;">]</span><span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #4e3163;">1000</span> t<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
+<span style="color: #3a81c3;">(</span>= <span style="color: #6c3163;">(</span>sequence decomposed-xf times-v<span style="color: #6c3163;">)</span> <span style="color: #6c3163;">(</span>smt-8 times-v<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span> <span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">=&gt; true</span>
 <span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence decomposed-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Evaluation count : 6 in 6 samples of 1 calls.</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;              </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time mean : 366.650954 ms</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;     </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time std-deviation : 2.112047 ms</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time lower quantile : 365.042052 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time upper quantile : 370.254096 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;                    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Overhead used : 2.066166 ns</span>
 </pre>
 </div>
-<pre class="example">
-;;                 Evaluation count : 6 in 6 samples of 1 calls.
-;;              Execution time mean : 351.568027 ms
-;;     Execution time std-deviation : 759.033184 µs
-;;    Execution time lower quantile : 350.854161 ms ( 2.5%)
-;;    Execution time upper quantile : 352.427674 ms (97.5%)
-;;                    Overhead used : 2.079753 ns
-</pre>
 
 <p>
 25% faster? How come? The culprit is mainly <code>apply</code>. <code>juxt</code> returns a
@@ -323,17 +309,16 @@ more efficient than, last. If the collection is empty, returns nil.
    <span style="color: #2d9574;">(</span>map <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span> <span style="color: #b1951d;">[</span>v <span style="color: #3a81c3;">(</span>- <span style="color: #6c3163;">(</span>peek v<span style="color: #6c3163;">)</span> <span style="color: #6c3163;">(</span>nth v <span style="color: #4e3163;">0</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
    <span style="color: #2d9574;">(</span>filter <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #3a81c3;">[</span>_ t<span style="color: #3a81c3;">]</span><span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #4e3163;">1000</span> t<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
+<span style="color: #3a81c3;">(</span>= <span style="color: #6c3163;">(</span>sequence decomposed-xf times-v<span style="color: #6c3163;">)</span> <span style="color: #6c3163;">(</span>sequence vector-xf times-v<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span> <span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">=&gt; true</span>
 <span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence vector-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Evaluation count : 12 in 6 samples of 2 calls.</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;              </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time mean : 88.566441 ms</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;     </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time std-deviation : 350.326432 &#181;s</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time lower quantile : 88.235538 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time upper quantile : 89.062221 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;                    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Overhead used : 2.066166 ns</span>
 </pre>
 </div>
-<pre class="example">
-;; Evaluation count : 12 in 6 samples of 2 calls.
-;;              Execution time mean : 86.004857 ms
-;;     Execution time std-deviation : 87.076601 µs
-;;    Execution time lower quantile : 85.837271 ms ( 2.5%)
-;;    Execution time upper quantile : 86.062956 ms (97.5%)
-;;                    Overhead used : 2.079753 ns
-</pre>
 
 <p>
 Now we're beginning to see some dramatic improvements. It is mostly due
@@ -373,20 +358,43 @@ difference calculation and not allocate another vector:
            <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">when</span> <span style="color: #3a81c3;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #6c3163;">(</span>- <span style="color: #2d9574;">(</span>peek v<span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>nth v <span style="color: #4e3163;">0</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
              v<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
+<span style="color: #3a81c3;">(</span>= <span style="color: #6c3163;">(</span>sequence keep-xf times-v<span style="color: #6c3163;">)</span> <span style="color: #6c3163;">(</span>map first <span style="color: #2d9574;">(</span>sequence vector-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span> <span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">=&gt; true</span>
 <span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence keep-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Evaluation count : 12 in 6 samples of 2 calls.</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;              </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time mean : 80.411626 ms</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;     </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time std-deviation : 1.211228 ms</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time lower quantile : 79.822031 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time upper quantile : 82.508332 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;                    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Overhead used : 2.066166 ns</span>
 </pre>
 </div>
-<pre class="example">
-;; Evaluation count : 12 in 6 samples of 2 calls.
-;;              Execution time mean : 75.370382 ms
-;;     Execution time std-deviation : 351.859789 µs
-;;    Execution time lower quantile : 75.041801 ms ( 2.5%)
-;;    Execution time upper quantile : 75.967303 ms (97.5%)
-;;                    Overhead used : 2.079753 ns
-</pre>
 
 <p>
-Even faster, but not by much. Can we go faster?
+Slightly faster. Since we know the inputs will always be <code>long</code>, we can use unchecked maths:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">set!</span> <span style="color: #3a81c3;">*unchecked-math*</span> <span style="color: #4e3163;">true</span><span style="color: #3a81c3;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">unchecked-xf</span>
+  <span style="color: #6c3163;">(</span>comp
+   <span style="color: #2d9574;">(</span>sliding <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>v<span style="color: #b1951d;">]</span>
+           <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">when</span> <span style="color: #3a81c3;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #6c3163;">(</span>unchecked-subtract <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>peek v<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>nth v <span style="color: #4e3163;">0</span><span style="color: #887070;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+             v<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">set!</span> <span style="color: #3a81c3;">*unchecked-math*</span> <span style="color: #4e3163;">false</span><span style="color: #3a81c3;">)</span>
+
+<span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence unchecked-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Evaluation count : 12 in 6 samples of 2 calls.</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;              </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time mean : 66.642476 ms</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;     </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time std-deviation : 356.808224 &#181;s</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time lower quantile : 66.323382 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time upper quantile : 67.047693 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;                    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Overhead used : 2.066166 ns</span>
+</pre>
+</div>
+
+<p>
+Another 20%!
 </p>
 
 <p>
@@ -447,7 +455,6 @@ requirement, we can skip over wrapping the results in the sliding
 transducer in a vector:
 </p>
 
-
 <div class="org-src-container">
 <pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">sliding-array</span>
   <span style="color: #6c3163;">(</span><span style="color: #2d9574;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">long</span> n <span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">long</span> step<span style="color: #2d9574;">]</span>
@@ -455,14 +462,7 @@ transducer in a vector:
      <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>a <span style="color: #3a81c3;">(</span>java.util.ArrayDeque. n<span style="color: #3a81c3;">)</span><span style="color: #b1951d;">]</span>
        <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span>
          <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[]</span> <span style="color: #6c3163;">(</span>rf<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
-         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result<span style="color: #6c3163;">]</span>
-          <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>result <span style="color: #887070;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #3a81c3;">(</span>.isEmpty a<span style="color: #3a81c3;">)</span>
-                         result
-                         <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #6c3163;">[</span>v <span style="color: #2d9574;">(</span>.toArray a<span style="color: #2d9574;">)</span><span style="color: #6c3163;">]</span>
-                           <span style="color: #2aa1ae; background-color: #ecf3ec;">;;</span><span style="color: #2aa1ae; background-color: #ecf3ec;">clear first!</span>
-                           <span style="color: #6c3163;">(</span>.clear a<span style="color: #6c3163;">)</span>
-                           <span style="color: #6c3163;">(</span>unreduced <span style="color: #2d9574;">(</span>rf result v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span><span style="color: #2d9574;">]</span>
-            <span style="color: #2d9574;">(</span>rf result<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+         <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result<span style="color: #6c3163;">]</span> <span style="color: #6c3163;">(</span>rf result<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
          <span style="color: #3a81c3;">(</span><span style="color: #6c3163;">[</span>result input<span style="color: #6c3163;">]</span>
           <span style="color: #6c3163;">(</span>.add a input<span style="color: #6c3163;">)</span>
           <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>= n <span style="color: #887070;">(</span>.size a<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
@@ -479,50 +479,25 @@ Then, modify the argument to <code>keep</code> to take an array:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">array-xf</span>
-  <span style="color: #6c3163;">(</span>comp
-   <span style="color: #2d9574;">(</span>sliders <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
-   <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">objects</span> arr<span style="color: #b1951d;">]</span>
-           <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">when</span> <span style="color: #3a81c3;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #6c3163;">(</span>- <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>aget arr <span style="color: #3a81c3;">(</span>unchecked-dec-int <span style="color: #6c3163;">(</span>alength arr<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
-                            <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>aget arr <span style="color: #4e3163;">0</span><span style="color: #887070;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
-             arr<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
-</pre>
-</div>
-
-<p>
-This is becoming slightly unwieldy so let's just sprinkle a little macro on top:
-</p>
-
-<div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defmacro</span> <span style="color: #6c3163; font-weight: bold;">alast</span>
-  <span style="color: #6c3163;">[</span>arr<span style="color: #6c3163;">]</span>
-  `<span style="color: #6c3163;">(</span>aget ~arr <span style="color: #2d9574;">(</span>unchecked-dec-int <span style="color: #67b11d;">(</span>alength ~arr<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
-
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">set!</span> <span style="color: #3a81c3;">*unchecked-math*</span> <span style="color: #4e3163;">true</span><span style="color: #3a81c3;">)</span>
 <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">def</span> <span style="color: #715ab1;">array-xf</span>
   <span style="color: #6c3163;">(</span>comp
-   <span style="color: #2d9574;">(</span>sliders <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
+   <span style="color: #2d9574;">(</span>sliding-array <span style="color: #4e3163;">8</span> <span style="color: #4e3163;">1</span><span style="color: #2d9574;">)</span>
    <span style="color: #2d9574;">(</span>keep <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">objects</span> arr<span style="color: #b1951d;">]</span>
-           <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">when</span> <span style="color: #3a81c3;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #6c3163;">(</span>- <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>alast arr<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span> <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>aget arr <span style="color: #4e3163;">0</span><span style="color: #887070;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+           <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">when</span> <span style="color: #3a81c3;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #6c3163;">(</span>unchecked-subtract
+                          <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>aget arr <span style="color: #4e3163;">7</span><span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
+                          <span style="color: #2d9574;">(</span>long <span style="color: #887070;">(</span>aget arr <span style="color: #4e3163;">0</span><span style="color: #887070;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
              arr<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">set!</span> <span style="color: #3a81c3;">*unchecked-math*</span> <span style="color: #4e3163;">false</span><span style="color: #3a81c3;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence array-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Evaluation count : 30 in 6 samples of 5 calls.</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;              </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time mean : 23.127029 ms</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;     </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time std-deviation : 192.325091 &#181;s</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time lower quantile : 22.890029 ms ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time upper quantile : 23.325306 ms (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;                    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Overhead used : 2.066166 ns</span>
 </pre>
 </div>
-
-<p>
-And the results:
-</p>
-
-<div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">doall</span> <span style="color: #2d9574;">(</span>sequence array-xf times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
-</pre>
-</div>
-<pre class="example">
-;; Evaluation count : 30 in 6 samples of 5 calls.
-;;              Execution time mean : 24.417962 ms
-;;     Execution time std-deviation : 425.377564 µs
-;;    Execution time lower quantile : 24.022441 ms ( 2.5%)
-;;    Execution time upper quantile : 24.998770 ms (97.5%)
-;;                    Overhead used : 2.079753 ns
-</pre>
 
 <p>
 Another 3x speedup, new 46x times faster than the original, without
@@ -546,30 +521,31 @@ instead of a vector or set:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">unrolled</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">set!</span> <span style="color: #3a81c3;">*unchecked-math*</span> <span style="color: #4e3163;">true</span><span style="color: #3a81c3;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">unrolled</span>
   <span style="color: #6c3163;">[</span><span style="color: #655370; background-color: #fbf8ef;">^</span><span style="color: #ba2f59; font-weight: bold;">longs</span> arr<span style="color: #6c3163;">]</span>
-  <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>l <span style="color: #67b11d;">(</span>unchecked-subtract-int <span style="color: #b1951d;">(</span>alength arr<span style="color: #b1951d;">)</span> <span style="color: #4e3163;">8</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+  <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>l <span style="color: #67b11d;">(</span>unchecked-subtract <span style="color: #b1951d;">(</span>alength arr<span style="color: #b1951d;">)</span> <span style="color: #4e3163;">7</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
     <span style="color: #2d9574;">(</span><span style="color: #3a81c3; font-weight: bold;">loop</span> <span style="color: #67b11d;">[</span>idx <span style="color: #b1951d;">(</span>int <span style="color: #4e3163;">0</span><span style="color: #b1951d;">)</span> agg <span style="color: #b1951d;">()</span><span style="color: #67b11d;">]</span>
       <span style="color: #67b11d;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #b1951d;">(</span>&lt; idx l<span style="color: #b1951d;">)</span>
-        <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">recur</span>
-         <span style="color: #3a81c3;">(</span>unchecked-inc-int idx<span style="color: #3a81c3;">)</span>
-         <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #6c3163;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #2d9574;">(</span>- <span style="color: #887070;">(</span>aget arr <span style="color: #3a81c3;">(</span>unchecked-add-int idx <span style="color: #4e3163;">8</span><span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span> <span style="color: #887070;">(</span>aget arr idx<span style="color: #887070;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span>
-           <span style="color: #6c3163;">(</span>.cons agg idx<span style="color: #6c3163;">)</span>
-           agg<span style="color: #3a81c3;">)</span><span style="color: #b1951d;">)</span>
+        <span style="color: #b1951d;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #3a81c3;">[</span>idx <span style="color: #6c3163;">(</span>int idx<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">]</span>
+          <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">recur</span>
+           <span style="color: #6c3163;">(</span>unchecked-inc-int idx<span style="color: #6c3163;">)</span>
+           <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span>&gt; <span style="color: #4e3163;">1000</span> <span style="color: #887070;">(</span>unchecked-subtract <span style="color: #3a81c3;">(</span>aget arr <span style="color: #6c3163;">(</span>unchecked-add-int idx <span style="color: #4e3163;">7</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span> <span style="color: #3a81c3;">(</span>aget arr idx<span style="color: #3a81c3;">)</span><span style="color: #887070;">)</span><span style="color: #2d9574;">)</span>
+             <span style="color: #2d9574;">(</span>.cons agg idx<span style="color: #2d9574;">)</span>
+             agg<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span><span style="color: #b1951d;">)</span>
         agg<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">set!</span> <span style="color: #3a81c3;">*unchecked-math*</span> <span style="color: #4e3163;">false</span><span style="color: #3a81c3;">)</span>
 
 <span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">let</span> <span style="color: #6c3163;">[</span>arr <span style="color: #2d9574;">(</span>long-array times-v<span style="color: #2d9574;">)</span><span style="color: #6c3163;">]</span>
   <span style="color: #6c3163;">(</span><span style="color: #ba2f59; font-weight: bold;">cc</span>/quick-bench <span style="color: #2d9574;">(</span>unrolled arr<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Evaluation count : 912 in 6 samples of 152 calls.</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;              </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time mean : 655.284194 &#181;s</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;     </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time std-deviation : 2.846323 &#181;s</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time lower quantile : 651.150750 &#181;s ( 2.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Execution time upper quantile : 658.353038 &#181;s (97.5%)</span>
+<span style="color: #2aa1ae; background-color: #ecf3ec;">;;                    </span><span style="color: #2aa1ae; background-color: #ecf3ec;">Overhead used : 2.066166 ns</span>
 </pre>
 </div>
-<pre class="example">
-;; Evaluation count : 522 in 6 samples of 87 calls.
-;;              Execution time mean : 1.156237 ms
-;;     Execution time std-deviation : 1.555163 µs
-;;    Execution time lower quantile : 1.154193 ms ( 2.5%)
-;;    Execution time upper quantile : 1.157862 ms (97.5%)
-;;                    Overhead used : 2.079753 ns
-</pre>
 
 <p>
 Another 21x speedup!
@@ -616,6 +592,88 @@ The gains here are a result of a few actions:
 </div>
 </div>
 
+<div id="outline-container-orgebdbd09" class="outline-2">
+<h2 id="orgebdbd09">Final Scores</h2>
+<div class="outline-text-2" id="text-orgebdbd09">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left">step</td>
+<td class="org-right">time (ms)</td>
+<td class="org-right">improvement</td>
+<td class="org-right">relative</td>
+</tr>
+
+<tr>
+<td class="org-left">baseline</td>
+<td class="org-right">1159</td>
+<td class="org-right">1</td>
+<td class="org-right">1</td>
+</tr>
+
+<tr>
+<td class="org-left">xf</td>
+<td class="org-right">463</td>
+<td class="org-right">2.5032397</td>
+<td class="org-right">2.5032397</td>
+</tr>
+
+<tr>
+<td class="org-left">decomposed</td>
+<td class="org-right">366</td>
+<td class="org-right">3.1666667</td>
+<td class="org-right">1.2650273</td>
+</tr>
+
+<tr>
+<td class="org-left">vector</td>
+<td class="org-right">88</td>
+<td class="org-right">13.170455</td>
+<td class="org-right">4.1590909</td>
+</tr>
+
+<tr>
+<td class="org-left">keep</td>
+<td class="org-right">80</td>
+<td class="org-right">14.4875</td>
+<td class="org-right">1.1</td>
+</tr>
+
+<tr>
+<td class="org-left">unchecked</td>
+<td class="org-right">66</td>
+<td class="org-right">17.560606</td>
+<td class="org-right">1.2121212</td>
+</tr>
+
+<tr>
+<td class="org-left">array</td>
+<td class="org-right">23</td>
+<td class="org-right">50.391304</td>
+<td class="org-right">2.8695652</td>
+</tr>
+
+<tr>
+<td class="org-left">iteration</td>
+<td class="org-right">0.655</td>
+<td class="org-right">1769.4656</td>
+<td class="org-right">35.114504</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 
 <div id="outline-container-orgc7e8ef6" class="outline-2">
 <h2 id="orgc7e8ef6">Should you try this at home?</h2>

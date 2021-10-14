@@ -42,23 +42,23 @@ This premise hides two assumptions:
 
 Let us examine these assumptions by looking at the original implementation:
 
-  #+begin_src clojure
-    (defn smt-8 [times]
-      (->> times
-           (partition 8 1)
-           (map (juxt identity
-                      (comp (partial apply -)
-                            (juxt last first))))
-           (filter (comp (partial > 1000) second))))
-  #+end_src
+#+begin_src clojure
+  (defn smt-8 [times]
+    (->> times
+         (partition 8 1)
+         (map (juxt identity
+                    (comp (partial apply -)
+                          (juxt last first))))
+         (filter (comp (partial > 1000) second))))
+#+end_src
 
-  There is absolutely nothing wrong with it. It's correct and
-  demonstrates a good use of composition.
+There is absolutely nothing wrong with it. It's correct and
+demonstrates a good use of composition.
 
-  It is, however, far from optimal, even in terms of Clojure's performance.
+It is, however, far from optimal, even in terms of Clojure's performance.
   
-  As we'll see further on, by refactoring this function our code will be
-  both more idiomatic and perform better.
+As we'll see further on, by refactoring this function our code will be
+both more idiomatic and perform better.
 
 * Baseline
 
@@ -68,14 +68,12 @@ Setting up some test data, we can get a baseline measurement:
   (require '[criterium.core :as cc])
   (def times-v (into [] (take 1e6) (iterate #(+ % (rand-int 1000)) 0)))
   (cc/quick-bench (doall (smt-8 times-v)))
-#+end_src
-#+begin_src 
   ;; Evaluation count : 6 in 6 samples of 1 calls.
-  ;;              Execution time mean : 1.134559 sec
-  ;;     Execution time std-deviation : 29.296718 ms
-  ;;    Execution time lower quantile : 1.116004 sec ( 2.5%)
-  ;;    Execution time upper quantile : 1.182402 sec (97.5%)
-  ;;                    Overhead used : 2.079753 ns
+  ;;              Execution time mean : 1.159347 sec
+  ;;     Execution time std-deviation : 17.835002 ms
+  ;;    Execution time lower quantile : 1.143263 sec ( 2.5%)
+  ;;    Execution time upper quantile : 1.186615 sec (97.5%)
+  ;;                    Overhead used : 2.066166 ns
 #+end_src
 
 It's important to note an initial oversight by the author, who
@@ -151,14 +149,7 @@ ArrayList with a Queue!
        (let [a (java.util.ArrayDeque. n)] ;; Queue here
          (fn
            ([] (rf))
-           ([result]
-            (let [result (if (.isEmpty a)
-                           result
-                           (let [v (vec (.toArray a))]
-                             ;;clear first!
-                             (.clear a)
-                             (unreduced (rf result v))))]
-              (rf result)))
+           ([result] (rf result)) ;; don't need leftovers
            ([result input]
             (.add a input)
             (if (= n (.size a))
@@ -172,7 +163,7 @@ ArrayList with a Queue!
 Let's convinces ourselves it works:
 
 #+begin_src clojure
-  (sequence (sliding 3 1) '[a b c d e]);; => ([a b c] [b c d] [c d e] [d e])
+  (sequence (sliding 3 1) '[a b c d e]);; => ([a b c] [b c d] [c d e])
 #+end_src
 
 Now we can define an equivalent transducer:
@@ -187,8 +178,6 @@ Now we can define an equivalent transducer:
      (filter (comp (partial > 1000) second))))
 
   (cc/quick-bench (doall (sequence baseline-xf times-v)))
-#+end_src
-#+begin_src 
   ;; Evaluation count : 6 in 6 samples of 1 calls.
   ;;              Execution time mean : 462.921956 ms
   ;;     Execution time std-deviation : 20.213288 ms
@@ -197,29 +186,28 @@ Now we can define an equivalent transducer:
   ;;                    Overhead used : 2.079753 ns
 #+end_src
 
- And we're already ~2.5x faster
+And we're already ~2.5x faster
 
 * De-composing
 
- How much overhead is there to all this functional composition? Let's
- find out:
+How much overhead is there to all this functional composition? Let's
+find out:
 
 #+begin_src clojure
-(def decomposed-xf
-  (comp
-   (sliding 8 1)
-   (map (fn [v] [v (- (last v) (first v))]))
-   (filter (fn [[_ t]] (> 1000 t)))))
+  (def decomposed-xf
+    (comp
+     (sliding 8 1)
+     (map (fn [v] [v (- (last v) (first v))]))
+     (filter (fn [[_ t]] (> 1000 t)))))
 
-(cc/quick-bench (doall (sequence decomposed-xf times-v)))
-#+end_src
-#+begin_src 
-;;                 Evaluation count : 6 in 6 samples of 1 calls.
-;;              Execution time mean : 351.568027 ms
-;;     Execution time std-deviation : 759.033184 µs
-;;    Execution time lower quantile : 350.854161 ms ( 2.5%)
-;;    Execution time upper quantile : 352.427674 ms (97.5%)
-;;                    Overhead used : 2.079753 ns
+  (= (sequence decomposed-xf times-v) (smt-8 times-v)) ;; => true
+  (cc/quick-bench (doall (sequence decomposed-xf times-v)))
+  ;; Evaluation count : 6 in 6 samples of 1 calls.
+  ;;              Execution time mean : 366.650954 ms
+  ;;     Execution time std-deviation : 2.112047 ms
+  ;;    Execution time lower quantile : 365.042052 ms ( 2.5%)
+  ;;    Execution time upper quantile : 370.254096 ms (97.5%)
+  ;;                    Overhead used : 2.066166 ns
 #+end_src
 
 25% faster? How come? The culprit is mainly ~apply~. ~juxt~ returns a
@@ -228,39 +216,38 @@ time. Iteration has its price.
 
 * Faster vector operations
 
- ~first~ and ~last~ will work on pretty much everything, including Java
- arrays. It does not mean, however, it is a good idea.
- Vectors can be accessed faster using indexed access.
+~first~ and ~last~ will work on pretty much everything, including Java
+arrays. It does not mean, however, it is a good idea.
+Vectors can be accessed faster using indexed access.
 
- Since our last vector won't have 8 elements, we can generically get the
- last element by using peek. Looking at its docstring:
- #+begin_quote
-  For a list or queue, same as first, for a vector, same as, but much
-  more efficient than, last. If the collection is empty, returns nil.
- #+end_quote
+Since our last vector won't have 8 elements, we can generically get the
+last element by using peek. Looking at its docstring:
+#+begin_quote
+For a list or queue, same as first, for a vector, same as, but much
+more efficient than, last. If the collection is empty, returns nil.
+#+end_quote
 
 #+begin_src clojure
-(def vector-xf
-  (comp
-   (sliding 8 1)
-   (map (fn [v] [v (- (peek v) (nth v 0))]))
-   (filter (fn [[_ t]] (> 1000 t)))))
+  (def vector-xf
+    (comp
+     (sliding 8 1)
+     (map (fn [v] [v (- (peek v) (nth v 0))]))
+     (filter (fn [[_ t]] (> 1000 t)))))
 
-(cc/quick-bench (doall (sequence vector-xf times-v)))
-#+end_src
-#+begin_src 
-;; Evaluation count : 12 in 6 samples of 2 calls.
-;;              Execution time mean : 86.004857 ms
-;;     Execution time std-deviation : 87.076601 µs
-;;    Execution time lower quantile : 85.837271 ms ( 2.5%)
-;;    Execution time upper quantile : 86.062956 ms (97.5%)
-;;                    Overhead used : 2.079753 ns
+  (= (sequence decomposed-xf times-v) (sequence vector-xf times-v)) ;; => true
+  (cc/quick-bench (doall (sequence vector-xf times-v)))
+  ;; Evaluation count : 12 in 6 samples of 2 calls.
+  ;;              Execution time mean : 88.566441 ms
+  ;;     Execution time std-deviation : 350.326432 µs
+  ;;    Execution time lower quantile : 88.235538 ms ( 2.5%)
+  ;;    Execution time upper quantile : 89.062221 ms (97.5%)
+  ;;                    Overhead used : 2.066166 ns
 #+end_src
 
- Now we're beginning to see some dramatic improvements. It is mostly due
- to the overhead of ~last~, which *always* iterates over the input
- collection, and does not even take the most efficient code paths to do
- so.
+Now we're beginning to see some dramatic improvements. It is mostly due
+to the overhead of ~last~, which *always* iterates over the input
+collection, and does not even take the most efficient code paths to do
+so.
 
 * Something between map and filter
 
@@ -277,25 +264,45 @@ Turns out, that's exactly what we needed. We can then discard the
 difference calculation and not allocate another vector:
 
 #+begin_src clojure
-(def keep-xf
-  (comp
-   (sliding 8 1)
-   (keep (fn [v]
-           (when (> 1000 (- (peek v) (nth v 0)))
-             v)))))
+  (def keep-xf
+    (comp
+     (sliding 8 1)
+     (keep (fn [v]
+             (when (> 1000 (- (peek v) (nth v 0)))
+               v)))))
 
-(cc/quick-bench (doall (sequence keep-xf times-v)))
-#+end_src
-#+begin_src
-;; Evaluation count : 12 in 6 samples of 2 calls.
-;;              Execution time mean : 75.370382 ms
-;;     Execution time std-deviation : 351.859789 µs
-;;    Execution time lower quantile : 75.041801 ms ( 2.5%)
-;;    Execution time upper quantile : 75.967303 ms (97.5%)
-;;                    Overhead used : 2.079753 ns
+  (= (sequence keep-xf times-v) (map first (sequence vector-xf times-v))) ;; => true
+  (cc/quick-bench (doall (sequence keep-xf times-v)))
+  ;; Evaluation count : 12 in 6 samples of 2 calls.
+  ;;              Execution time mean : 80.411626 ms
+  ;;     Execution time std-deviation : 1.211228 ms
+  ;;    Execution time lower quantile : 79.822031 ms ( 2.5%)
+  ;;    Execution time upper quantile : 82.508332 ms (97.5%)
+  ;;                    Overhead used : 2.066166 ns
 #+end_src
 
-Even faster, but not by much. Can we go faster?
+Slightly faster. Since we know the inputs will always be ~long~, we can use unchecked maths:
+
+#+begin_src clojure
+  (set! *unchecked-math* true)
+  (def unchecked-xf
+    (comp
+     (sliding 8 1)
+     (keep (fn [v]
+             (when (> 1000 (unchecked-subtract (long (peek v)) (long (nth v 0))))
+               v)))))
+  (set! *unchecked-math* false)
+
+  (cc/quick-bench (doall (sequence unchecked-xf times-v)))
+  ;; Evaluation count : 12 in 6 samples of 2 calls.
+  ;;              Execution time mean : 66.642476 ms
+  ;;     Execution time std-deviation : 356.808224 µs
+  ;;    Execution time lower quantile : 66.323382 ms ( 2.5%)
+  ;;    Execution time upper quantile : 67.047693 ms (97.5%)
+  ;;                    Overhead used : 2.066166 ns
+#+end_src
+
+Another 20%!
 
 Up to this point, we can pat ourselves on the back and say our code is
 still idiomatic on one hand, but performs way better on the other. About
@@ -337,69 +344,43 @@ requirement, we can skip over wrapping the results in the sliding
 transducer in a vector:
 
 #+begin_src clojure
-(defn sliding-array
-  ([^long n ^long step]
-   (fn [rf]
-     (let [a (java.util.ArrayDeque. n)]
-       (fn
-         ([] (rf))
-         ([result]
-          (let [result (if (.isEmpty a)
-                         result
-                         (let [v (.toArray a)]
-                           ;;clear first!
-                           (.clear a)
-                           (unreduced (rf result v))))]
-            (rf result)))
-         ([result input]
-          (.add a input)
-          (if (= n (.size a))
-            (let [v (.toArray a)]
-              ;; Remove `step` elements instead of clear
-              (dotimes [_ step] (.removeFirst a))
-              (rf result v))
-            result)))))))
+  (defn sliding-array
+    ([^long n ^long step]
+     (fn [rf]
+       (let [a (java.util.ArrayDeque. n)]
+         (fn
+           ([] (rf))
+           ([result] (rf result))
+           ([result input]
+            (.add a input)
+            (if (= n (.size a))
+              (let [v (.toArray a)]
+                ;; Remove `step` elements instead of clear
+                (dotimes [_ step] (.removeFirst a))
+                (rf result v))
+              result)))))))
 #+end_src
 
 Then, modify the argument to ~keep~ to take an array:
 
 #+begin_src clojure
-(def array-xf
-  (comp
-   (sliders 8 1)
-   (keep (fn [^objects arr]
-           (when (> 1000 (- (long (aget arr (unchecked-dec-int (alength arr))))
+  (set! *unchecked-math* true)
+  (def array-xf
+    (comp
+     (sliding-array 8 1)
+     (keep (fn [^objects arr]
+             (when (> 1000 (unchecked-subtract
+                            (long (aget arr 7))
                             (long (aget arr 0))))
-             arr)))))
-#+end_src
-
- This is becoming slightly unwieldy so let's just sprinkle a little macro on top:
-
-#+begin_src clojure
-(defmacro alast
-  [arr]
-  `(aget ~arr (unchecked-dec-int (alength ~arr))))
-
-(def array-xf
-  (comp
-   (sliders 8 1)
-   (keep (fn [^objects arr]
-           (when (> 1000 (- (long (alast arr)) (long (aget arr 0))))
-             arr)))))
-#+end_src
-
-And the results:
-
-#+begin_src clojure
-(cc/quick-bench (doall (sequence array-xf times-v)))
-#+end_src
-#+begin_src 
-;; Evaluation count : 30 in 6 samples of 5 calls.
-;;              Execution time mean : 24.417962 ms
-;;     Execution time std-deviation : 425.377564 µs
-;;    Execution time lower quantile : 24.022441 ms ( 2.5%)
-;;    Execution time upper quantile : 24.998770 ms (97.5%)
-;;                    Overhead used : 2.079753 ns
+               arr)))))
+  (set! *unchecked-math* false)
+  (cc/quick-bench (doall (sequence array-xf times-v)))
+  ;; Evaluation count : 30 in 6 samples of 5 calls.
+  ;;              Execution time mean : 23.127029 ms
+  ;;     Execution time std-deviation : 192.325091 µs
+  ;;    Execution time lower quantile : 22.890029 ms ( 2.5%)
+  ;;    Execution time upper quantile : 23.325306 ms (97.5%)
+  ;;                    Overhead used : 2.066166 ns
 #+end_src
 
 Another 3x speedup, new 46x times faster than the original, without
@@ -415,28 +396,29 @@ fact that linked lists are pretty fast to allocate, so build those
 instead of a vector or set:
 
 #+begin_src clojure
+  (set! *unchecked-math* true)
   (defn unrolled
     [^longs arr]
-    (let [l (unchecked-subtract-int (alength arr) 8)]
+    (let [l (unchecked-subtract (alength arr) 7)]
       (loop [idx (int 0) agg ()]
         (if (< idx l)
-          (recur
-           (unchecked-inc-int idx)
-           (if (> 1000 (- (aget arr (unchecked-add-int idx 8)) (aget arr idx)))
-             (.cons agg idx)
-             agg))
+          (let [idx (int idx)]
+            (recur
+             (unchecked-inc-int idx)
+             (if (> 1000 (unchecked-subtract (aget arr (unchecked-add-int idx 7)) (aget arr idx)))
+               (.cons agg idx)
+               agg)))
           agg))))
+  (set! *unchecked-math* false)
 
   (let [arr (long-array times-v)]
     (cc/quick-bench (unrolled arr)))
-#+end_src
-#+begin_src 
-  ;; Evaluation count : 522 in 6 samples of 87 calls.
-  ;;              Execution time mean : 1.156237 ms
-  ;;     Execution time std-deviation : 1.555163 µs
-  ;;    Execution time lower quantile : 1.154193 ms ( 2.5%)
-  ;;    Execution time upper quantile : 1.157862 ms (97.5%)
-  ;;                    Overhead used : 2.079753 ns
+  ;; Evaluation count : 912 in 6 samples of 152 calls.
+  ;;              Execution time mean : 655.284194 µs
+  ;;     Execution time std-deviation : 2.846323 µs
+  ;;    Execution time lower quantile : 651.150750 µs ( 2.5%)
+  ;;    Execution time upper quantile : 658.353038 µs (97.5%)
+  ;;                    Overhead used : 2.066166 ns
 #+end_src
 
 Another 21x speedup!
@@ -464,6 +446,19 @@ The gains here are a result of a few actions:
   - Vectors -> arrays make for faster access
   - Working directly with arrays and contiguous memory access
 
+* Final Scores
+
+| step       | time (ms) | improvement |  relative |
+| baseline   |      1159 |           1 |         1 |
+| xf         |       463 |   2.5032397 | 2.5032397 |
+| decomposed |       366 |   3.1666667 | 1.2650273 |
+| vector     |        88 |   13.170455 | 4.1590909 |
+| keep       |        80 |     14.4875 |       1.1 |
+| unchecked  |        66 |   17.560606 | 1.2121212 |
+| array      |        23 |   50.391304 | 2.8695652 |
+| iteration  |     0.655 |   1769.4656 | 35.114504 |
+#+TBLFM: @2$3..@>$3=@2$2/$2 
+#+TBLFM: @3$4..@>$4=@-1$2/$2
 
 * Should you try this at home?
 
@@ -488,3 +483,4 @@ you need to, Clojure can probably get there.
 
 
 Happy hacking
+
