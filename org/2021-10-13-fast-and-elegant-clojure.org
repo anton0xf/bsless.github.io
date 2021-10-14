@@ -40,7 +40,7 @@ This premise hides two assumptions:
 - Idiomatic Clojure is slow
 - Optimized Clojure is non idiomatic
 
-  Let us examine these assumptions by looking at the original implementation:
+Let us examine these assumptions by looking at the original implementation:
 
   #+begin_src clojure
     (defn smt-8 [times]
