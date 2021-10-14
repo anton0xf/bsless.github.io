@@ -383,7 +383,7 @@ Then, modify the argument to ~keep~ to take an array:
   ;;                    Overhead used : 2.066166 ns
 #+end_src
 
-Another 3x speedup, new 46x times faster than the original, without
+Another ~3x speedup, new 50x times faster than the original, without
 going crazy with interop, optimization or some unrolling.
 
 * But can we go faster?
