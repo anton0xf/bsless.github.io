@@ -5,7 +5,7 @@
 ---
 layout: post
 title: "Stressed Servers"
-subtitle: "Pushing the limites with Clojure - web servers edition"
+subtitle: "Pushing the limits with Clojure - web servers edition"
 permalink: /:title/
 tags: [clojure, "web servers" ,"performance"]
 categories: [clojure, "web servers" ,"performance"]

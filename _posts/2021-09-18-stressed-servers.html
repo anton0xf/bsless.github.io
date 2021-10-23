@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Stressed Servers"
-subtitle: "Pushing the limites with Clojure - web servers edition"
+subtitle: "Pushing the limits with Clojure - web servers edition"
 permalink: /:title/
 tags: [clojure, "web servers" ,"performance"]
 categories: [clojure, "web servers" ,"performance"]
@@ -195,7 +195,7 @@ response time even at 6 nines.
 </p>
 
 
-<div id="org5aeb860" class="figure">
+<div id="org7d52b05" class="figure">
 <p><img src="../assets/img/httpkit.ring-middleware.async.java15.ParallelGC.r60k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ParallelGC.r60k.t16.c400.d600s.png" />  
 </p>
 </div>
@@ -214,7 +214,7 @@ This web server's response time has a sharp jump, also known as a "wall"
 </p>
 
 
-<div id="org7383fb0" class="figure">
+<div id="orgfe75b16" class="figure">
 <p><img src="../assets/img/jetty.ring-interceptors.async.java8.ParallelGC.r30k.t16.c400.d600s.png" alt="jetty.ring-interceptors.async.java8.ParallelGC.r30k.t16.c400.d600s.png" />
 </p>
 </div>
@@ -231,7 +231,7 @@ percentiles
 </p>
 
 
-<div id="orgae52762" class="figure">
+<div id="orgdbd023f" class="figure">
 <p><img src="../assets/img/jetty.ring-interceptors.async.java8.ParallelGC.r50k.t16.c400.d600s.png" alt="jetty.ring-interceptors.async.java8.ParallelGC.r50k.t16.c400.d600s.png" />
 </p>
 </div>
@@ -248,7 +248,7 @@ them and for all intents and purposes, it is non-responsive.
 </p>
 
 
-<div id="org3070b45" class="figure">
+<div id="org1fc1ec4" class="figure">
 <p><img src="../assets/img/jetty.ring-interceptors.async.java8.ParallelGC.r60k.t16.c400.d600s.png" alt="jetty.ring-interceptors.async.java8.ParallelGC.r60k.t16.c400.d600s.png" />
 </p>
 </div>
@@ -436,44 +436,44 @@ You can see these plots below:
 </p>
 </div>
 
-<div id="outline-container-org02bcb15" class="outline-5">
-<h5 id="org02bcb15">ParallelGC</h5>
-<div class="outline-text-5" id="text-org02bcb15">
+<div id="outline-container-org5b5af75" class="outline-5">
+<h5 id="org5b5af75">ParallelGC</h5>
+<div class="outline-text-5" id="text-org5b5af75">
 
-<div id="orgb42a7f8" class="figure">
+<div id="orga739da6" class="figure">
 <p><img src="../assets/img/httpkit.ring-middleware.async.java15.ParallelGC.r30k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ParallelGC.r30k.t16.c400.d600s.png" />
 </p>
 </div>
 </div>
 </div>
 
-<div id="outline-container-org8c17dc3" class="outline-5">
-<h5 id="org8c17dc3">G1GC</h5>
-<div class="outline-text-5" id="text-org8c17dc3">
+<div id="outline-container-org793bd18" class="outline-5">
+<h5 id="org793bd18">G1GC</h5>
+<div class="outline-text-5" id="text-org793bd18">
 
-<div id="orgb1a6294" class="figure">
+<div id="orgf3227e5" class="figure">
 <p><img src="../assets/img/httpkit.ring-middleware.async.java15.G1GC.r30k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.G1GC.r30k.t16.c400.d600s.png" />
 </p>
 </div>
 </div>
 </div>
 
-<div id="outline-container-orgf9babcc" class="outline-5">
-<h5 id="orgf9babcc">ShenandoahGC</h5>
-<div class="outline-text-5" id="text-orgf9babcc">
+<div id="outline-container-orgb653ce9" class="outline-5">
+<h5 id="orgb653ce9">ShenandoahGC</h5>
+<div class="outline-text-5" id="text-orgb653ce9">
 
-<div id="orgd49d472" class="figure">
+<div id="orgd888621" class="figure">
 <p><img src="../assets/img/httpkit.ring-middleware.async.java15.ShenandoahGC.r30k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ShenandoahGC.r30k.t16.c400.d600s.png" />
 </p>
 </div>
 </div>
 </div>
 
-<div id="outline-container-org0f0d985" class="outline-5">
-<h5 id="org0f0d985">ZGC</h5>
-<div class="outline-text-5" id="text-org0f0d985">
+<div id="outline-container-org26b55c3" class="outline-5">
+<h5 id="org26b55c3">ZGC</h5>
+<div class="outline-text-5" id="text-org26b55c3">
 
-<div id="org34ff5ea" class="figure">
+<div id="org44415a6" class="figure">
 <p><img src="../assets/img/httpkit.ring-middleware.async.java15.ZGC.r30k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ZGC.r30k.t16.c400.d600s.png" />
 </p>
 </div>
@@ -599,44 +599,44 @@ As before, plots of these results can be found below:
 </p>
 </div>
 
-<div id="outline-container-org793bd18" class="outline-5">
-<h5 id="org793bd18">G1GC</h5>
-<div class="outline-text-5" id="text-org793bd18">
+<div id="outline-container-orgd153ab7" class="outline-5">
+<h5 id="orgd153ab7">G1GC</h5>
+<div class="outline-text-5" id="text-orgd153ab7">
 
-<div id="org0f56cc0" class="figure">
+<div id="orge3da435" class="figure">
 <p><img src="../assets/img/httpkit.ring-middleware.async.java15.G1GC.r60k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.G1GC.r60k.t16.c400.d600s.png" />
 </p>
 </div>
 </div>
 </div>
 
-<div id="outline-container-org5b5af75" class="outline-5">
-<h5 id="org5b5af75">ParallelGC</h5>
-<div class="outline-text-5" id="text-org5b5af75">
+<div id="outline-container-org8086092" class="outline-5">
+<h5 id="org8086092">ParallelGC</h5>
+<div class="outline-text-5" id="text-org8086092">
 
-<div id="org453d194" class="figure">
+<div id="org2e60e02" class="figure">
 <p><img src="../assets/img/httpkit.ring-middleware.async.java15.ParallelGC.r60k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ParallelGC.r60k.t16.c400.d600s.png" />
 </p>
 </div>
 </div>
 </div>
 
-<div id="outline-container-orgb653ce9" class="outline-5">
-<h5 id="orgb653ce9">ShenandoahGC</h5>
-<div class="outline-text-5" id="text-orgb653ce9">
+<div id="outline-container-org525f78e" class="outline-5">
+<h5 id="org525f78e">ShenandoahGC</h5>
+<div class="outline-text-5" id="text-org525f78e">
 
-<div id="orgd3ed804" class="figure">
+<div id="orgddc223b" class="figure">
 <p><img src="../assets/img/httpkit.ring-middleware.async.java15.ShenandoahGC.r60k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ShenandoahGC.r60k.t16.c400.d600s.png" />
 </p>
 </div>
 </div>
 </div>
 
-<div id="outline-container-org26b55c3" class="outline-5">
-<h5 id="org26b55c3">ZGC</h5>
-<div class="outline-text-5" id="text-org26b55c3">
+<div id="outline-container-org1f57fcd" class="outline-5">
+<h5 id="org1f57fcd">ZGC</h5>
+<div class="outline-text-5" id="text-org1f57fcd">
 
-<div id="org897470d" class="figure">
+<div id="orgf37a3a6" class="figure">
 <p><img src="../assets/img/httpkit.ring-middleware.async.java15.ZGC.r60k.t16.c400.d600s.png" alt="httpkit.ring-middleware.async.java15.ZGC.r60k.t16.c400.d600s.png" />
 </p>
 </div>
@@ -656,9 +656,8 @@ understand where we're being wasteful of CPU cycles.
 </p>
 
 
-<div id="org73514ec" class="figure">
-<p><object type="image/svg+xml" data="../assets/img/httpkit.ring-middleware.async.java15.ParallelGC.svg" class="org-svg">
-Sorry, your browser does not support SVG.</object>
+<div id="orgfb71a6a" class="figure">
+<p><img src="../assets/img/httpkit.ring-middleware.async.java15.ParallelGC.svg" alt="httpkit.ring-middleware.async.java15.ParallelGC.svg" class="org-svg" />
 </p>
 </div>
 
@@ -891,29 +890,29 @@ I have not tested yet.
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span>require '<span style="color: #bc6ec5;">[</span>org.httpkit.server <span style="color: #a45bad;">:as</span> http<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span>require '<span style="color: #6c3163;">[</span>org.httpkit.server <span style="color: #4e3163;">:as</span> http<span style="color: #6c3163;">]</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">respond</span>
-  <span style="color: #bc6ec5;">[</span>channel<span style="color: #bc6ec5;">]</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #bc6ec5; font-weight: bold;">-respond</span> <span style="color: #2d9574;">[</span>response<span style="color: #2d9574;">]</span>
-    <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">http</span>/send! channel response<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">respond</span>
+  <span style="color: #6c3163;">[</span>channel<span style="color: #6c3163;">]</span>
+  <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #6c3163; font-weight: bold;">-respond</span> <span style="color: #2d9574;">[</span>response<span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #ba2f59; font-weight: bold;">http</span>/send! channel response<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">raise</span>
-  <span style="color: #bc6ec5;">[</span>channel<span style="color: #bc6ec5;">]</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #bc6ec5; font-weight: bold;">-raise</span> <span style="color: #2d9574;">[</span>?error<span style="color: #2d9574;">]</span>
-    <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">http</span>/send! channel ?error<span style="color: #2d9574;">)</span>
-    <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">http</span>/close channel<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">raise</span>
+  <span style="color: #6c3163;">[</span>channel<span style="color: #6c3163;">]</span>
+  <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #6c3163; font-weight: bold;">-raise</span> <span style="color: #2d9574;">[</span>?error<span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #ba2f59; font-weight: bold;">http</span>/send! channel ?error<span style="color: #2d9574;">)</span>
+    <span style="color: #2d9574;">(</span><span style="color: #ba2f59; font-weight: bold;">http</span>/close channel<span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">ring-&gt;httpkit</span>
-  <span style="color: #bc6ec5;">[</span>handler<span style="color: #bc6ec5;">]</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #bc6ec5; font-weight: bold;">httpkit-&gt;async</span> <span style="color: #2d9574;">[</span>request<span style="color: #2d9574;">]</span>
-    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">when-let</span> <span style="color: #67b11d;">[</span>ch <span style="color: #b1951d;">(</span>request <span style="color: #a45bad;">:async-channel</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">]</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">ring-&gt;httpkit</span>
+  <span style="color: #6c3163;">[</span>handler<span style="color: #6c3163;">]</span>
+  <span style="color: #6c3163;">(</span><span style="color: #3a81c3; font-weight: bold;">fn</span> <span style="color: #6c3163; font-weight: bold;">httpkit-&gt;async</span> <span style="color: #2d9574;">[</span>request<span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #3a81c3; font-weight: bold;">when-let</span> <span style="color: #67b11d;">[</span>ch <span style="color: #b1951d;">(</span>request <span style="color: #4e3163;">:async-channel</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">]</span>
       <span style="color: #67b11d;">(</span>handler request <span style="color: #b1951d;">(</span>respond ch<span style="color: #b1951d;">)</span> <span style="color: #b1951d;">(</span>raise ch<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
-      <span style="color: #67b11d;">{</span><span style="color: #a45bad;">:body</span> ch<span style="color: #67b11d;">}</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+      <span style="color: #67b11d;">{</span><span style="color: #4e3163;">:body</span> ch<span style="color: #67b11d;">}</span><span style="color: #2d9574;">)</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 
-<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">start-server</span>
-  <span style="color: #bc6ec5;">[</span>options<span style="color: #bc6ec5;">]</span>
-  <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">http</span>/run-server <span style="color: #2d9574;">(</span>ring-&gt;httpkit handler<span style="color: #2d9574;">)</span> options<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<span style="color: #3a81c3;">(</span><span style="color: #3a81c3; font-weight: bold;">defn</span> <span style="color: #6c3163; font-weight: bold;">start-server</span>
+  <span style="color: #6c3163;">[</span>options<span style="color: #6c3163;">]</span>
+  <span style="color: #6c3163;">(</span><span style="color: #ba2f59; font-weight: bold;">http</span>/run-server <span style="color: #2d9574;">(</span>ring-&gt;httpkit handler<span style="color: #2d9574;">)</span> options<span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 </div>
@@ -932,13 +931,13 @@ the ring-handler
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">ring</span>/ring-handler
- <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">ring</span>/router
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">ring</span>/ring-handler
+ <span style="color: #6c3163;">(</span><span style="color: #ba2f59; font-weight: bold;">ring</span>/router
   routes
-  router-options<span style="color: #bc6ec5;">)</span>
+  router-options<span style="color: #6c3163;">)</span>
  default-handler
- <span style="color: #bc6ec5;">{</span><span style="color: #a45bad;">:inject-match?</span> <span style="color: #a45bad;">false</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">these two right here!</span>
-  <span style="color: #a45bad;">:inject-router?</span> <span style="color: #a45bad;">false</span><span style="color: #bc6ec5;">}</span><span style="color: #4f97d7;">)</span>
+ <span style="color: #6c3163;">{</span><span style="color: #4e3163;">:inject-match?</span> <span style="color: #4e3163;">false</span> <span style="color: #2aa1ae; background-color: #ecf3ec;">;; </span><span style="color: #2aa1ae; background-color: #ecf3ec;">these two right here!</span>
+  <span style="color: #4e3163;">:inject-router?</span> <span style="color: #4e3163;">false</span><span style="color: #6c3163;">}</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 </div>
@@ -952,7 +951,7 @@ When performance matters, make sure to set the return type to <code>bytes</code>
 </p>
 
 <div class="org-src-container">
-<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">m</span>/create <span style="color: #bc6ec5;">(</span>merge <span style="color: #ce537a; font-weight: bold;">m</span>/default-options <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:return</span> <span style="color: #a45bad;">:bytes</span><span style="color: #2d9574;">}</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+<pre class="src src-clojure"><span style="color: #3a81c3;">(</span><span style="color: #ba2f59; font-weight: bold;">m</span>/create <span style="color: #6c3163;">(</span>merge <span style="color: #ba2f59; font-weight: bold;">m</span>/default-options <span style="color: #2d9574;">{</span><span style="color: #4e3163;">:return</span> <span style="color: #4e3163;">:bytes</span><span style="color: #2d9574;">}</span><span style="color: #6c3163;">)</span><span style="color: #3a81c3;">)</span>
 </pre>
 </div>
 
