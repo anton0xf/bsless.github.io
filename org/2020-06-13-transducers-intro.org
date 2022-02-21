@@ -261,9 +261,9 @@ Hope you brought your swimming trunks, we're going on a deep dive.
    #+begin_src haskell
      f :: a -> b
      mapper :: (a -> b) -> (rf -> (accum -> a -> accum))
-     rf :: accum -> a -> accum
+     rf :: accum -> b -> accum
      --
-     mapper :: (a -> b) -> ((accum -> a -> accum) -> (accum' -> a' -> accum'))
+     mapper :: (a -> b) -> ((accum -> b -> accum) -> (accum -> a -> accum))
      mapper :: (a -> b) -> (rf -> rf')
    #+end_src
 
